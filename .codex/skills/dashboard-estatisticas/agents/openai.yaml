@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dashboard e Estatisticas"
+  short_description: "Metricas e graficos seguros por usuario"
+  default_prompt: "Use $dashboard-estatisticas para criar ou revisar o dashboard de metricas e graficos do projeto."
