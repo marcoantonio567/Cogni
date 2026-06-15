@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Testes e Validação"
+  short_description: "Revisa testes e riscos de qualidade"
+  default_prompt: "Use $testes-validacao para revisar a cobertura de testes e validar as regras de negócio do Gerenciador de Estudos."
