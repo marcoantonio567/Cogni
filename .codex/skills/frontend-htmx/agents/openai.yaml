@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend HTMX"
+  short_description: "Dinamica HTMX para progresso"
+  default_prompt: "Use $frontend-htmx para implementar checkboxes HTMX e atualizar progresso sem recarregar a pagina."
