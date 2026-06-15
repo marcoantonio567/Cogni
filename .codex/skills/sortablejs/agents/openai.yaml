@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agente SortableJS"
+  short_description: "Reordena topicos e subtopicos com SortableJS em Django."
+  default_prompt: "Use este agente para implementar ou revisar reordenacao de Topicos e Subtopicos com SortableJS no Gerenciador de Estudos, garantindo ownership por usuario, endpoints seguros e persistencia do campo ordem."
