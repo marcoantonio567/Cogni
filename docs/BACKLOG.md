@@ -176,7 +176,26 @@ Criterios de aceite:
 - Criar, editar, concluir e excluir atualiza progresso.
 - Observacoes sao persistidas corretamente.
 
-## 9. HTMX para Checkbox de Conclusao
+## 9. Barras de Progresso
+
+Objetivo: exibir progresso geral, por categoria e por topico.
+
+Tarefas:
+
+- Criar partial de barra de progresso.
+- Exibir progresso geral do usuario.
+- Exibir progresso por categoria.
+- Exibir progresso por topico.
+- Integrar atualizacoes com HTMX.
+- Usar `ProgressoService` como fonte de calculo.
+
+Criterios de aceite:
+
+- Progresso visual bate com os dados persistidos.
+- Barras atualizam apos mudancas.
+- Nao ha calculo duplicado em views ou templates.
+
+## 10. HTMX para Checkbox de Conclusao
 
 Objetivo: atualizar conclusao de subtopico sem recarregar a pagina.
 
@@ -196,7 +215,7 @@ Criterios de aceite:
 - Os progressos exibidos refletem a mudanca.
 - Usuario nao altera subtopico de outro usuario.
 
-## 10. Ordenacao com SortableJS
+## 11. Ordenacao com SortableJS
 
 Objetivo: permitir reordenar topicos e subtopicos por drag-and-drop.
 
@@ -214,25 +233,6 @@ Criterios de aceite:
 - A ordem permanece apos recarregar a pagina.
 - Usuario so reordena os proprios itens.
 - Nao e possivel mover itens para estruturas de outro usuario.
-
-## 11. Barras de Progresso
-
-Objetivo: exibir progresso geral, por categoria e por topico.
-
-Tarefas:
-
-- Criar partial de barra de progresso.
-- Exibir progresso geral do usuario.
-- Exibir progresso por categoria.
-- Exibir progresso por topico.
-- Integrar atualizacoes com HTMX.
-- Usar `ProgressoService` como fonte de calculo.
-
-Criterios de aceite:
-
-- Progresso visual bate com os dados persistidos.
-- Barras atualizam apos mudancas.
-- Nao ha calculo duplicado em views ou templates.
 
 ## 12. Dashboard e Estatisticas
 
@@ -332,3 +332,42 @@ Criterios de aceite:
 13. Layout base e frontend.
 14. Testes automatizados.
 15. Documentacao de execucao.
+
+## Paralelizacao Recomendada
+
+Esta matriz indica quais frentes podem ser executadas em paralelo sem quebrar as
+dependencias principais do projeto.
+
+| Item | Feature | Depende de | Pode rodar em paralelo com |
+|---|---|---|---|
+| 1 | Estrutura inicial do Django | Nada | Evitar paralelizar; e base das demais frentes |
+| 2 | Autenticacao e isolamento por usuario | 1 | 13. Layout base inicial; 15. Documentacao inicial |
+| 3 | Modelagem de dados | 1 e idealmente 2 | 5. Mixins iniciais; 14. Testes de modelos |
+| 4 | Service layer de progresso | 3 | 5. Mixins; 14. Testes de service layer |
+| 5 | Mixins obrigatorios | 2 e 3 | 4. Service layer; 14. Testes de seguranca |
+| 6 | CRUD de categorias | 2, 3 e 5 | 13. Layout; 14. Testes de CRUD |
+| 7 | CRUD de topicos | 2, 3, 5 e 6 | 9. Barras parciais; 11. SortableJS de topicos; 14. Testes |
+| 8 | CRUD de subtopicos | 2, 3, 4, 5 e 7 | 10. HTMX inicial; 11. SortableJS de subtopicos; 14. Testes |
+| 9 | Barras de progresso | 3, 4, 6, 7 e 8 | 10. HTMX; 12. Dashboard inicial; 13. Frontend |
+| 10 | HTMX para conclusao | 4, 5, 8 e 9 | 14. Testes de interacao; ajustes de frontend |
+| 11 | SortableJS para ordenacao | 3, 5, 7 e 8 | 14. Testes de ordenacao; ajustes de frontend |
+| 12 | Dashboard com Chart.js | 2, 3, 4 e 9 | 13. Layout final; 14. Testes de estatisticas |
+| 13 | Layout base e frontend | 1 | Pode acompanhar quase todas as frentes depois da estrutura inicial |
+| 14 | Testes automatizados | Depende parcialmente de cada feature | Deve acompanhar cada etapa, nao ficar apenas para o final |
+| 15 | Documentacao de execucao | 1 | Pode comecar cedo e fechar no final |
+
+Fluxo sugerido:
+
+1. Depois da estrutura inicial, paralelizar autenticacao, layout base e
+   documentacao inicial.
+2. Depois da autenticacao, paralelizar modelagem, mixins e testes iniciais de
+   isolamento.
+3. Depois dos modelos, paralelizar service layer, CRUD de categorias e testes de
+   modelos/service.
+4. Depois de categorias, paralelizar CRUD de topicos, barras parciais e
+   preparacao do SortableJS.
+5. Depois de topicos, paralelizar CRUD de subtopicos, HTMX inicial e SortableJS
+   de subtopicos.
+6. Depois de subtopicos e service layer, fechar barras de progresso, HTMX,
+   dashboard e testes de regressao.
+7. Finalizar com layout, testes completos e documentacao de execucao.
