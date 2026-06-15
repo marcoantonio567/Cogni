@@ -1,0 +1,4 @@
+interface:
+  display_name: "Service Layer"
+  short_description: "Centraliza progresso no ProgressoService"
+  default_prompt: "Use $service-layer para revisar a logica de progresso no ProgressoService."
