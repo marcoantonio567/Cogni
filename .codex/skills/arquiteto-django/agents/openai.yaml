@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arquiteto Django"
+  short_description: "Valida a arquitetura Django obrigatória"
+  default_prompt: "Use $arquiteto-django para validar a arquitetura Django do Gerenciador de Estudos."

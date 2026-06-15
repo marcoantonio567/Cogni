@@ -1,0 +1,4 @@
+interface:
+  display_name: "Regras de Negócio"
+  short_description: "Fiscaliza escopo e regras oficiais"
+  default_prompt: "Use $regras-de-negocio para revisar esta decisão contra as regras oficiais do Gerenciador de Estudos."

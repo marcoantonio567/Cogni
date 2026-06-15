@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coordenador Técnico"
+  short_description: "Coordena especialistas e protege as regras do projeto"
+  default_prompt: "Use $coordenador-tecnico para analisar e coordenar esta tarefa do Gerenciador de Estudos."
