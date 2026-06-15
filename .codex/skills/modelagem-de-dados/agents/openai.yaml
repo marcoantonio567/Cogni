@@ -1,0 +1,4 @@
+interface:
+  display_name: "Modelagem de Dados"
+  short_description: "Revisa modelos, relações e cache de progresso"
+  default_prompt: "Use $modelagem-de-dados para revisar os modelos Django do Gerenciador de Estudos."
