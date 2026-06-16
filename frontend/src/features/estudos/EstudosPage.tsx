@@ -14,6 +14,9 @@ export function EstudosPage() {
   const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(null)
   const [categoriaNome, setCategoriaNome] = useState('')
   const [categoriaDescricao, setCategoriaDescricao] = useState('')
+  const [categoriaEditId, setCategoriaEditId] = useState<number | null>(null)
+  const [categoriaEditNome, setCategoriaEditNome] = useState('')
+  const [categoriaEditDescricao, setCategoriaEditDescricao] = useState('')
   const [topicoNames, setTopicoNames] = useState<FieldMap>({})
   const [subtopicoNames, setSubtopicoNames] = useState<FieldMap>({})
   const [pendingAction, setPendingAction] = useState('')
@@ -65,7 +68,13 @@ export function EstudosPage() {
 
   const replaceOverview = (nextOverview: EstudosOverview) => {
     setOverview(nextOverview)
-    setSelectedCategoriaId((current) => current ?? nextOverview.categorias[0]?.id ?? null)
+    setSelectedCategoriaId((current) => {
+      if (current && nextOverview.categorias.some((categoria) => categoria.id === current)) {
+        return current
+      }
+
+      return nextOverview.categorias[0]?.id ?? null
+    })
   }
 
   const runAction = async (label: string, action: () => Promise<EstudosOverview | void>) => {
@@ -95,8 +104,41 @@ export function EstudosPage() {
       const result = await api.createCategoria({ nome: categoriaNome, descricao: categoriaDescricao })
       setCategoriaNome('')
       setCategoriaDescricao('')
+      setSelectedCategoriaId(result.categorias.at(-1)?.id ?? null)
       return result
     })
+  }
+
+  const updateCategoria = (event: FormEvent<HTMLFormElement>, categoriaId: number) => {
+    event.preventDefault()
+    const categoriaAtual = overview?.categorias.find((categoria) => categoria.id === categoriaId)
+    const nome = categoriaEditId === categoriaId ? categoriaEditNome : categoriaAtual?.nome ?? ''
+    const descricao = categoriaEditId === categoriaId ? categoriaEditDescricao : categoriaAtual?.descricao ?? ''
+
+    void runAction(`categoria-edit-${categoriaId}`, async () =>
+      api.updateCategoria({
+        id: categoriaId,
+        nome,
+        descricao,
+      }),
+    )
+  }
+
+  const deleteCategoria = (categoriaId: number) => {
+    const categoria = overview?.categorias.find((item) => item.id === categoriaId)
+
+    if (!categoria || !window.confirm(`Excluir a categoria "${categoria.nome}" e todos os seus topicos?`)) {
+      return
+    }
+
+    void runAction(`categoria-delete-${categoriaId}`, async () => api.deleteCategoria(categoriaId))
+  }
+
+  const selectCategoria = (categoria: Categoria) => {
+    setSelectedCategoriaId(categoria.id)
+    setCategoriaEditId(categoria.id)
+    setCategoriaEditNome(categoria.nome)
+    setCategoriaEditDescricao(categoria.descricao)
   }
 
   const createTopico = (event: FormEvent<HTMLFormElement>, categoriaId: number) => {
@@ -155,6 +197,11 @@ export function EstudosPage() {
     )
   }
 
+  const activeCategoriaEditNome =
+    selectedCategoria && categoriaEditId === selectedCategoria.id ? categoriaEditNome : selectedCategoria?.nome ?? ''
+  const activeCategoriaEditDescricao =
+    selectedCategoria && categoriaEditId === selectedCategoria.id ? categoriaEditDescricao : selectedCategoria?.descricao ?? ''
+
   return (
     <main className="workspace">
       <PageHeader
@@ -182,11 +229,12 @@ export function EstudosPage() {
 
       <section className="study-grid">
         <aside className="category-panel" aria-label="Categorias">
-          <div className="panel-heading">
+          <div className="panel-heading panel-heading--split">
             <div>
               <span>Organização</span>
               <h2>Categorias</h2>
             </div>
+            <strong>{totals.totalCategorias}</strong>
           </div>
 
           <form className="stack-form compact-form" onSubmit={createCategoria}>
@@ -211,7 +259,7 @@ export function EstudosPage() {
               <button
                 className={categoria.id === selectedCategoria?.id ? 'category-button category-button--active' : 'category-button'}
                 key={categoria.id}
-                onClick={() => setSelectedCategoriaId(categoria.id)}
+                onClick={() => selectCategoria(categoria)}
                 type="button"
               >
                 <span>
@@ -230,13 +278,27 @@ export function EstudosPage() {
           {selectedCategoria ? (
             <CategoriaDetail
               categoria={selectedCategoria}
+              categoriaEditDescricao={activeCategoriaEditDescricao}
+              categoriaEditNome={activeCategoriaEditNome}
+              onCategoriaEditDescricaoChange={(value) => {
+                setCategoriaEditId(selectedCategoria.id)
+                setCategoriaEditNome(activeCategoriaEditNome)
+                setCategoriaEditDescricao(value)
+              }}
+              onCategoriaEditNomeChange={(value) => {
+                setCategoriaEditId(selectedCategoria.id)
+                setCategoriaEditNome(value)
+                setCategoriaEditDescricao(activeCategoriaEditDescricao)
+              }}
               onCreateSubtopico={createSubtopico}
               onCreateTopico={createTopico}
+              onDeleteCategoria={deleteCategoria}
               onReorderSubtopicos={reorderSubtopicos}
               onReorderTopicos={reorderTopicos}
               onSubtopicoNameChange={(topicoId, value) => setSubtopicoNames((current) => ({ ...current, [topicoId]: value }))}
               onToggleSubtopico={toggleSubtopico}
               onTopicoNameChange={(categoriaId, value) => setTopicoNames((current) => ({ ...current, [categoriaId]: value }))}
+              onUpdateCategoria={updateCategoria}
               pendingAction={pendingAction}
               subtopicoNames={subtopicoNames}
               topicoNames={topicoNames}
@@ -252,9 +314,15 @@ export function EstudosPage() {
 
 type CategoriaDetailProps = {
   categoria: Categoria
+  categoriaEditNome: string
+  categoriaEditDescricao: string
   topicoNames: FieldMap
   subtopicoNames: FieldMap
   pendingAction: string
+  onUpdateCategoria: (event: FormEvent<HTMLFormElement>, categoriaId: number) => void
+  onDeleteCategoria: (categoriaId: number) => void
+  onCategoriaEditNomeChange: (value: string) => void
+  onCategoriaEditDescricaoChange: (value: string) => void
   onCreateTopico: (event: FormEvent<HTMLFormElement>, categoriaId: number) => void
   onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
   onTopicoNameChange: (categoriaId: number, value: string) => void
@@ -266,13 +334,19 @@ type CategoriaDetailProps = {
 
 function CategoriaDetail({
   categoria,
+  categoriaEditDescricao,
+  categoriaEditNome,
+  onCategoriaEditDescricaoChange,
+  onCategoriaEditNomeChange,
   onCreateSubtopico,
   onCreateTopico,
+  onDeleteCategoria,
   onReorderSubtopicos,
   onReorderTopicos,
   onSubtopicoNameChange,
   onToggleSubtopico,
   onTopicoNameChange,
+  onUpdateCategoria,
   pendingAction,
   subtopicoNames,
   topicoNames,
@@ -294,6 +368,28 @@ function CategoriaDetail({
         </div>
         <ProgressBar label={`Progresso da categoria ${categoria.nome}`} value={categoria.progresso} />
       </div>
+
+      <form className="category-edit-form" onSubmit={(event) => onUpdateCategoria(event, categoria.id)}>
+        <label>
+          Editar nome
+          <input onChange={(event) => onCategoriaEditNomeChange(event.target.value)} required value={categoriaEditNome} />
+        </label>
+        <label>
+          Editar descrição
+          <input onChange={(event) => onCategoriaEditDescricaoChange(event.target.value)} required value={categoriaEditDescricao} />
+        </label>
+        <div className="category-actions">
+          <SubmitButton pending={pendingAction === `categoria-edit-${categoria.id}`}>Salvar categoria</SubmitButton>
+          <button
+            className="button button--danger"
+            disabled={pendingAction === `categoria-delete-${categoria.id}`}
+            onClick={() => onDeleteCategoria(categoria.id)}
+            type="button"
+          >
+            {pendingAction === `categoria-delete-${categoria.id}` ? 'Excluindo...' : 'Excluir'}
+          </button>
+        </div>
+      </form>
 
       <form className="inline-form inline-form--row add-row" onSubmit={(event) => onCreateTopico(event, categoria.id)}>
         <label>

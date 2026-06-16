@@ -9,6 +9,7 @@ import type {
   EstudosOverview,
   ReorderInput,
   Subtopico,
+  UpdateCategoriaInput,
   UserSession,
 } from './types'
 
@@ -35,6 +36,19 @@ export const liveApi = {
   async createCategoria(input: CreateCategoriaInput) {
     const { data } = await httpClient.post<EstudosOverview>('/estudos/categorias/', input)
     return data
+  },
+
+  async updateCategoria(input: UpdateCategoriaInput) {
+    await httpClient.patch(`/estudos/categorias/${input.id}/`, {
+      nome: input.nome,
+      descricao: input.descricao,
+    })
+    return this.estudosOverview()
+  },
+
+  async deleteCategoria(categoriaId: number) {
+    await httpClient.delete(`/estudos/categorias/${categoriaId}/`)
+    return this.estudosOverview()
   },
 
   async createTopico(input: CreateTopicoInput) {

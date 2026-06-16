@@ -10,6 +10,7 @@ import type {
   ReorderInput,
   Subtopico,
   Topico,
+  UpdateCategoriaInput,
   UserSession,
 } from './types'
 
@@ -199,6 +200,30 @@ export const mockApi = {
         topicos: [],
       },
     ]
+
+    return cloneOverview()
+  },
+
+  async updateCategoria(input: UpdateCategoriaInput) {
+    await wait()
+
+    categorias = categorias.map((categoria) =>
+      categoria.id === input.id
+        ? {
+            ...categoria,
+            nome: input.nome,
+            descricao: input.descricao,
+          }
+        : categoria,
+    )
+
+    return cloneOverview()
+  },
+
+  async deleteCategoria(categoriaId: number) {
+    await wait()
+
+    categorias = categorias.filter((categoria) => categoria.id !== categoriaId)
 
     return cloneOverview()
   },

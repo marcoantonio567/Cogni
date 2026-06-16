@@ -72,6 +72,12 @@ export type CreateCategoriaInput = {
   descricao: string
 }
 
+export type UpdateCategoriaInput = {
+  id: number
+  nome: string
+  descricao: string
+}
+
 export type CreateTopicoInput = {
   categoriaId: number
   nome: string
