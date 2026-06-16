@@ -210,29 +210,43 @@ export function EstudosPage() {
         <OverviewBand overview={overview} totals={totals} />
 
         <section className="category-manager" aria-label="Categorias">
-          <form className="stack-form category-create-panel" onSubmit={createCategoria}>
-            <div className="panel-heading panel-heading--split">
-              <div>
-                <span>Nova categoria</span>
-                <h2>Criar categoria</h2>
+          <div className="category-manager__top">
+            <form className="stack-form category-create-panel" onSubmit={createCategoria}>
+              <div className="panel-heading panel-heading--split">
+                <div>
+                  <span>Nova categoria</span>
+                  <h2>Criar categoria</h2>
+                </div>
+                <strong>{totals.totalCategorias}</strong>
               </div>
+              <label>
+                Nome da categoria
+                <input onChange={(event) => setCategoriaNome(event.target.value)} placeholder="Ex.: Django REST" required value={categoriaNome} />
+              </label>
+              <label>
+                Descricao
+                <input
+                  onChange={(event) => setCategoriaDescricao(event.target.value)}
+                  placeholder="Ex.: API, auth e permissoes"
+                  required
+                  value={categoriaDescricao}
+                />
+              </label>
+              <SubmitButton pending={pendingAction === 'categoria'}>Criar categoria</SubmitButton>
+            </form>
+
+            <div className="category-insight" aria-label="Resumo das categorias">
+              <span>Mapa de estudos</span>
               <strong>{totals.totalCategorias}</strong>
+              <p>categorias organizadas para acessar seus topicos e subtopicos.</p>
+              <div>
+                <small>{totals.totalTopicos} topicos</small>
+                <small>
+                  {totals.concluidos}/{totals.totalSubtopicos} concluidos
+                </small>
+              </div>
             </div>
-            <label>
-              Nome da categoria
-              <input onChange={(event) => setCategoriaNome(event.target.value)} placeholder="Ex.: Django REST" required value={categoriaNome} />
-            </label>
-            <label>
-              Descricao
-              <input
-                onChange={(event) => setCategoriaDescricao(event.target.value)}
-                placeholder="Ex.: API, auth e permissoes"
-                required
-                value={categoriaDescricao}
-              />
-            </label>
-            <SubmitButton pending={pendingAction === 'categoria'}>Criar categoria</SubmitButton>
-          </form>
+          </div>
 
           {overview.categorias.length === 0 ? (
             <EmptyState description="Crie uma categoria para iniciar o fluxo de estudos." title="Sem categorias" />
@@ -352,9 +366,14 @@ function CategoriaCard({
   onUpdateCategoria,
   pendingAction,
 }: CategoriaCardProps) {
+  const initial = categoria.nome.trim().charAt(0).toUpperCase() || '#'
+
   return (
     <article className="category-card">
       <button className="category-card__open" onClick={() => onOpenCategoria(categoria)} type="button">
+        <span className="category-card__mark" aria-hidden="true">
+          {initial}
+        </span>
         <span>
           <strong>{categoria.nome}</strong>
           <small>{categoria.descricao}</small>
@@ -369,6 +388,7 @@ function CategoriaCard({
         <span>
           {categoria.subtopicosConcluidos}/{categoria.totalSubtopicos} subtopicos
         </span>
+        <span>Abrir estudos</span>
       </div>
 
       <form className="category-card__edit" onSubmit={(event) => onUpdateCategoria(event, categoria.id)}>
