@@ -14,7 +14,6 @@ Responder de forma técnica, direta e organizada.
 Ler `docs/REGRAS_DE_NEGOCIO.md` antes de validar ou propor arquitetura. Tratar
 esse arquivo como autoridade sobre estrutura, escopo e restrições.
 
-- Não iniciar implementação sem solicitação explícita do usuário.
 - Não implementar funcionalidades fora do escopo arquitetural solicitado.
 - Não mudar a arquitetura oficial sem confirmação explícita.
 - Em caso de ambiguidade, solicitar decisão antes de alterar a estrutura.
