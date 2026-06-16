@@ -14,6 +14,7 @@ export function EstudosPage() {
   const [activeCategoriaId, setActiveCategoriaId] = useState<number | null>(null)
   const [categoriaNome, setCategoriaNome] = useState('')
   const [categoriaDescricao, setCategoriaDescricao] = useState('')
+  const [showCreateCategoriaForm, setShowCreateCategoriaForm] = useState(false)
   const [categoriaEditId, setCategoriaEditId] = useState<number | null>(null)
   const [categoriaEditNome, setCategoriaEditNome] = useState('')
   const [categoriaEditDescricao, setCategoriaEditDescricao] = useState('')
@@ -100,6 +101,7 @@ export function EstudosPage() {
       const result = await api.createCategoria({ nome: categoriaNome, descricao: categoriaDescricao })
       setCategoriaNome('')
       setCategoriaDescricao('')
+      setShowCreateCategoriaForm(false)
       return result
     })
   }
@@ -200,6 +202,11 @@ export function EstudosPage() {
     return (
       <main className="workspace">
         <PageHeader
+          actions={
+            <button className="button button--primary" onClick={() => setShowCreateCategoriaForm((current) => !current)} type="button">
+              {showCreateCategoriaForm ? 'Fechar formulario' : 'Nova categoria'}
+            </button>
+          }
           description="Navegue pelas categorias em cards. Abra uma categoria para ver os topicos e subtopicos."
           eyebrow="Estudos"
           title="Categorias"
@@ -210,7 +217,7 @@ export function EstudosPage() {
         <OverviewBand overview={overview} totals={totals} />
 
         <section className="category-manager" aria-label="Categorias">
-          <div className="category-manager__top">
+          {showCreateCategoriaForm ? (
             <form className="stack-form category-create-panel" onSubmit={createCategoria}>
               <div className="panel-heading panel-heading--split">
                 <div>
@@ -234,19 +241,7 @@ export function EstudosPage() {
               </label>
               <SubmitButton pending={pendingAction === 'categoria'}>Criar categoria</SubmitButton>
             </form>
-
-            <div className="category-insight" aria-label="Resumo das categorias">
-              <span>Mapa de estudos</span>
-              <strong>{totals.totalCategorias}</strong>
-              <p>categorias organizadas para acessar seus topicos e subtopicos.</p>
-              <div>
-                <small>{totals.totalTopicos} topicos</small>
-                <small>
-                  {totals.concluidos}/{totals.totalSubtopicos} concluidos
-                </small>
-              </div>
-            </div>
-          </div>
+          ) : null}
 
           {overview.categorias.length === 0 ? (
             <EmptyState description="Crie uma categoria para iniciar o fluxo de estudos." title="Sem categorias" />

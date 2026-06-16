@@ -38,6 +38,20 @@ describe('App', () => {
     expect(screen.getAllByText(/Fundamentos de Django API/i).length).toBeGreaterThan(0)
   })
 
+  it('shows the create category form from the category menu button', async () => {
+    const user = userEvent.setup()
+    renderApp('/login')
+
+    await user.click(screen.getByRole('button', { name: /entrar/i }))
+
+    expect(await screen.findByRole('heading', { name: /categorias/i })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /criar categoria/i })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /nova categoria/i }))
+
+    expect(screen.getByRole('heading', { name: /criar categoria/i })).toBeInTheDocument()
+  })
+
   it('opens a category card and returns to the category menu', async () => {
     const user = userEvent.setup()
     renderApp('/login')
