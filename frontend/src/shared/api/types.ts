@@ -1,19 +1,13 @@
-export type ApiMode = 'mock' | 'live'
-
 export type UserSession = {
   id: number
-  nome: string
+  nome?: string
+  username?: string
   email: string
 }
 
 export type AuthCredentials = {
-  email: string
+  username: string
   password: string
-}
-
-export type AuthResponse = {
-  user: UserSession
-  accessToken: string
 }
 
 export type DashboardMetric = {

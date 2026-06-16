@@ -1,8 +1,6 @@
-import { isMockApi } from './config'
 import { liveApi } from './liveApi'
-import { mockApi } from './mockApi'
 
-export const api = isMockApi ? mockApi : liveApi
+export const api = liveApi
 
 export type {
   AuthCredentials,

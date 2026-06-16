@@ -8,8 +8,8 @@ export function LoginPage() {
   const { isAuthenticated, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [email, setEmail] = useState('demo@local.test')
-  const [password, setPassword] = useState('demo123')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
 
@@ -26,7 +26,7 @@ export function LoginPage() {
     setPending(true)
 
     try {
-      await login({ email, password })
+      await login({ username, password })
       navigate(redirectTo, { replace: true })
     } catch {
       setError('Não foi possível autenticar com a API configurada.')
@@ -46,8 +46,8 @@ export function LoginPage() {
 
         <form className="stack-form" onSubmit={handleSubmit}>
           <label>
-            Email
-            <input autoComplete="email" onChange={(event) => setEmail(event.target.value)} required type="email" value={email} />
+            Usuario
+            <input autoComplete="username" onChange={(event) => setUsername(event.target.value)} required type="text" value={username} />
           </label>
 
           <label>

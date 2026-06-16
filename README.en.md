@@ -30,9 +30,7 @@ The project uses separate backend and frontend applications:
 - Django + Django REST Framework backend implemented in `backend/`.
 - Versioned API available under `/api/v1/`.
 - Vite + React + TypeScript frontend implemented in `frontend/`.
-- The frontend runs in mock mode by default with `VITE_USE_MOCK_API=true`.
-- Live frontend/backend integration still requires contract alignment between
-  `frontend/src/shared/api/liveApi.ts` and the current backend endpoints.
+- The frontend consumes the real Django API configured in `VITE_BACKEND_API_URL`.
 - Backend tests, frontend tests, frontend lint, and frontend build were
   validated locally.
 
@@ -194,14 +192,10 @@ Example file: `frontend/.env.example`.
 
 ```env
 VITE_BACKEND_API_URL=http://localhost:8000/api/v1
-VITE_USE_MOCK_API=true
 ```
 
-Use `VITE_USE_MOCK_API=true` to run with simulated data.
-
-Use `VITE_USE_MOCK_API=false` to point to the real Django API. Before doing so,
-align the live contract in `frontend/src/shared/api/liveApi.ts` with the current
-backend endpoints.
+Configure `VITE_BACKEND_API_URL` with the public Django API URL in the hosting
+environment.
 
 ### Frontend Scripts
 
@@ -331,12 +325,8 @@ Validated result:
 
 ## Next Steps
 
-- Align `frontend/src/shared/api/liveApi.ts` with the real backend endpoints.
-- Define the final contract for the study overview used by the main screen.
 - Configure CORS/CSRF according to the final authentication strategy between
   frontend and backend.
-- Run the frontend with `VITE_USE_MOCK_API=false` after the live contract is
-  aligned.
 
 <p align="right">
   <a href="#study-manager">
