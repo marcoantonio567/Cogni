@@ -2,58 +2,121 @@
 
 ## Status
 
-Este documento e a referencia oficial de escopo e regras de negocio do projeto.
+Este documento e a fonte oficial de escopo, arquitetura e regras de negocio do
+projeto.
 
-- Status atual: requisitos registrados, implementacao nao iniciada.
-- Nao criar a aplicacao ate que haja uma solicitacao explicita para iniciar.
+- Status atual: arquitetura redesenhada para backend e frontend separados.
+- A base Django existente deve ser migrada de `projeto_estudos/` para
+  `backend/` antes da implementacao funcional completa.
+- O frontend deve viver em `frontend/` e consumir apenas a API publica do
+  backend.
 - Alteracoes nestas regras devem ser confirmadas antes de serem aplicadas.
-- Em caso de ambiguidade durante a implementacao, preservar estas regras e solicitar
-  uma decisao antes de mudar o comportamento definido.
+- Em caso de ambiguidade durante a implementacao, preservar estas regras e
+  solicitar uma decisao antes de mudar o comportamento definido.
 
 ## Objetivo
 
-Criar uma aplicacao web completa em Django para gerenciamento de estudos,
-seguindo exatamente a arquitetura, os padroes e as funcionalidades definidos
-neste documento.
+Criar uma aplicacao web completa para gerenciamento de estudos com backend e
+frontend independentes:
 
-## Estrutura de Pastas Obrigatoria
+- Backend em Django, responsavel por dominio, persistencia, autenticacao,
+  autorizacao, regras de negocio, progresso, ordenacao e API JSON.
+- Frontend em aplicacao cliente separada, responsavel por interface, estado de
+  tela, navegacao, chamadas HTTP, graficos e interacoes do usuario.
+
+## Arquitetura Obrigatoria
 
 ```text
-projeto_estudos/
-|-- core/
-|   |-- settings/
-|   |   |-- base.py
-|   |   |-- development.py
-|   |   `-- production.py
-|   `-- urls.py
-|-- apps/
-|   |-- estudos/
-|   |   |-- models.py
-|   |   |-- views.py
-|   |   |-- services.py
-|   |   `-- mixins.py
-|   |-- accounts/
-|   |   `-- autenticacao e perfil
-|   `-- dashboard/
-|       `-- graficos e estatisticas
-|-- templates/
-|   |-- base.html
-|   `-- partials/
-|-- static/
-|   |-- css/
-|   `-- js/
-`-- requirements/
+managerstudys/
+|-- backend/
+|   |-- manage.py
+|   |-- core/
+|   |   |-- settings/
+|   |   |   |-- base.py
+|   |   |   |-- development.py
+|   |   |   `-- production.py
+|   |   `-- urls.py
+|   |-- apps/
+|   |   |-- estudos/
+|   |   |   |-- models.py
+|   |   |   |-- serializers.py
+|   |   |   |-- views.py
+|   |   |   |-- services.py
+|   |   |   |-- mixins.py
+|   |   |   `-- urls.py
+|   |   |-- accounts/
+|   |   |   `-- autenticacao, usuario, perfil e API de sessao
+|   |   `-- dashboard/
+|   |       `-- metricas, estatisticas e API de graficos
+|   |-- requirements/
+|   `-- tests/
+|-- frontend/
+|   |-- package.json
+|   |-- src/
+|   |   |-- app/
+|   |   |-- features/
+|   |   |   |-- accounts/
+|   |   |   |-- estudos/
+|   |   |   `-- dashboard/
+|   |   |-- shared/
+|   |   |   |-- api/
+|   |   |   |-- components/
+|   |   |   `-- styles/
+|   |   `-- main.*
+|   |-- public/
+|   `-- tests/
+`-- docs/
+    |-- REGRAS_DE_NEGOCIO.md
+    `-- BACKLOG.md
 ```
 
-## Padroes de Design Obrigatorios
+Interpretar descricoes como `autenticacao, usuario, perfil e API de sessao` como
+areas de responsabilidade dos apps, nao como nomes literais obrigatorios de
+arquivos. Arquivos Django padrao adicionais, como `apps.py`, `admin.py`,
+`forms.py`, `tests.py` ou `migrations/`, sao permitidos se preservarem as
+responsabilidades acima.
 
-1. Usar Service Layer em `apps/estudos/services.py`, com a classe
+## Padroes Obrigatorios do Backend
+
+1. Usar Service Layer em `backend/apps/estudos/services.py`, com a classe
    `ProgressoService`.
-2. Criar os mixins `UserOwnershipMixin` e `ProgressoMixin`.
-3. Usar HTMX nos checkboxes para atualizacao AJAX sem recarregar a pagina.
+2. Criar os mixins `UserOwnershipMixin` e `ProgressoMixin` em
+   `backend/apps/estudos/mixins.py`.
+3. Expor API JSON versionada a partir de `backend/core/urls.py`, por exemplo
+   `/api/v1/`.
 4. Manter campos denormalizados em `Categoria` e `Topico` para cache de
    progresso.
-5. Usar SortableJS para reordenar topicos e subtopicos.
+5. Usar transacoes nas operacoes que alteram subtopicos, progresso ou ordenacao.
+6. Validar isolamento por usuario no backend em toda consulta e mutacao.
+7. Expor endpoints de ordenacao para topicos e subtopicos.
+8. Expor endpoints de estatisticas para o dashboard semanal.
+
+## Padroes Obrigatorios do Frontend
+
+1. O frontend deve ser independente do template engine do Django.
+2. O frontend deve consumir apenas endpoints da API publica do backend.
+3. O framework padrao sera Vite + React + TypeScript, salvo decisao explicita em
+   contrario antes da implementacao.
+4. Checkboxes de conclusao devem atualizar o backend via chamada HTTP sem
+   recarregar a pagina.
+5. Ordenacao visual deve usar SortableJS ou biblioteca equivalente aprovada,
+   persistindo a ordem pela API do backend.
+6. O dashboard deve renderizar o grafico semanal com Chart.js ou wrapper
+   equivalente.
+7. Estado visual nao pode substituir validacao de permissao no backend.
+
+## Contrato Backend/Frontend
+
+- O backend e a fonte da verdade para regras de negocio, permissao, progresso e
+  ordenacao.
+- O frontend nao calcula progresso definitivo; ele exibe valores retornados pela
+  API.
+- Payloads e respostas criticas devem ser documentados antes ou junto da
+  implementacao dos endpoints.
+- Mudancas de contrato devem ser registradas em `docs/BACKLOG.md` e refletidas
+  nos dois lados.
+- Erros de autorizacao, validacao e autenticacao devem retornar respostas
+  padronizadas para o frontend.
 
 ## Modelos
 
@@ -88,56 +151,38 @@ listados acima.
 
 ## Funcionalidades Obrigatorias
 
-- CRUD completo para `Categoria`, `Topico` e `Subtopico`.
+- CRUD completo para `Categoria`, `Topico` e `Subtopico` via API.
+- Interface frontend completa para `Categoria`, `Topico` e `Subtopico`.
 - Barra de progresso geral.
 - Barra de progresso por categoria.
 - Barra de progresso por topico.
-- Dashboard com grafico semanal usando Chart.js.
+- Dashboard com grafico semanal usando Chart.js ou wrapper equivalente.
 - Isolamento por usuario: cada usuario pode visualizar e manipular apenas os
   proprios dados.
+- Autenticacao integrada entre frontend e backend.
+
+## Politica de Worktrees
+
+O desenvolvimento deve considerar apenas duas worktrees de trabalho:
+
+- Uma worktree para a branch de backend, alterando principalmente `backend/`,
+  contratos de API e documentacao relacionada.
+- Uma worktree para a branch de frontend, alterando principalmente `frontend/`,
+  consumo da API e documentacao relacionada.
+
+Nao criar uma worktree por feature, agente ou tarefa. Quando houver varias
+features de backend ou frontend, elas devem ser organizadas em commits ou
+sub-branches dentro da worktree correspondente, conforme decisao do usuario.
+
+Arquivos compartilhados em `docs/` devem ter um dono claro por alteracao para
+evitar conflito entre as duas worktrees.
 
 ## Restricoes de Implementacao
 
-- A estrutura de pastas e obrigatoria.
-- Os padroes de design listados sao obrigatorios.
-- O codigo final deve ser completo e organizado na estrutura definida.
-- A entrega da implementacao deve incluir instrucoes de instalacao e execucao.
-- Este documento nao autoriza o inicio da implementacao; ele apenas registra o
-  escopo.
-
-## Prompt Original
-
-> Quero que voce crie uma aplicacao web completa em Django para gerenciamento
-> de estudos, seguindo EXATAMENTE esta arquitetura:
->
-> **Estrutura de pastas obrigatoria**
->
-> `projeto_estudos/`, com `core/settings/base.py`, `development.py`,
-> `production.py`, `core/urls.py`, os apps `estudos`, `accounts` e `dashboard`,
-> alem de `templates`, `static` e `requirements`.
->
-> **Padroes de design obrigatorios**
->
-> 1. Service Layer: criar `apps/estudos/services.py` com classe
->    `ProgressoService`.
-> 2. Mixins: criar `UserOwnershipMixin` e `ProgressoMixin`.
-> 3. HTMX para checkboxes, com atualizacao AJAX sem recarregar.
-> 4. Campos denormalizados em `Categoria` e `Topico` para cache de progresso.
-> 5. SortableJS para reordenar topicos e subtopicos.
->
-> **Modelos**
->
-> - Categoria: nome, descricao, usuario, total_subtopicos,
->   subtopicos_concluidos e progresso_cache.
-> - Topico: nome, categoria, ordem e usuario.
-> - Subtopico: nome, topico, concluido, ordem e observacoes.
->
-> **Funcionalidades**
->
-> - CRUD completo para Categoria, Topico e Subtopico.
-> - Barra de progresso geral, por categoria e por topico.
-> - Dashboard com grafico semanal usando Chart.js.
-> - Cada usuario ve apenas seus dados.
->
-> Entregar o codigo completo, organizado exatamente nessa estrutura, com
-> explicacoes de como executar.
+- A separacao `backend/` e `frontend/` e obrigatoria.
+- O backend nao deve depender do frontend para validar regras de negocio.
+- O frontend nao deve acessar banco de dados diretamente.
+- A entrega deve incluir instrucoes separadas para rodar backend e frontend.
+- A entrega deve incluir comandos de teste para backend e frontend.
+- Qualquer mudanca de stack, autenticacao ou contrato de API deve ser registrada
+  neste documento antes de ser implementada.
