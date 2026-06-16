@@ -10,6 +10,8 @@ import { useSortableIds } from './useSortableIds'
 type FieldMap = Record<number, string>
 type ToggleMap = Record<number, boolean>
 
+const subtopicoFormKey = (topicoId: number, subtopicoPaiId?: number) => subtopicoPaiId ? -subtopicoPaiId : topicoId
+
 export function EstudosPage() {
   const [overview, setOverview] = useState<EstudosOverview | null>(null)
   const [activeCategoriaId, setActiveCategoriaId] = useState<number | null>(null)
@@ -193,18 +195,19 @@ export function EstudosPage() {
     void runAction(`topico-delete-${topico.id}`, async () => api.deleteTopico(topico.id))
   }
 
-  const createSubtopico = (event: FormEvent<HTMLFormElement>, topicoId: number) => {
+  const createSubtopico = (event: FormEvent<HTMLFormElement>, topicoId: number, subtopicoPaiId?: number) => {
     event.preventDefault()
-    const nome = subtopicoNames[topicoId]?.trim()
+    const formKey = subtopicoFormKey(topicoId, subtopicoPaiId)
+    const nome = subtopicoNames[formKey]?.trim()
 
     if (!nome) {
       return
     }
 
-    void runAction(`subtopico-${topicoId}`, async () => {
-      const result = await api.createSubtopico({ topicoId, nome })
-      setSubtopicoNames((current) => ({ ...current, [topicoId]: '' }))
-      setShowCreateSubtopicoForms((current) => ({ ...current, [topicoId]: false }))
+    void runAction(`subtopico-${formKey}`, async () => {
+      const result = await api.createSubtopico({ topicoId, nome, subtopicoPaiId })
+      setSubtopicoNames((current) => ({ ...current, [formKey]: '' }))
+      setShowCreateSubtopicoForms((current) => ({ ...current, [formKey]: false }))
       return result
     })
   }
@@ -506,7 +509,7 @@ type CategoriaDetailProps = {
   showCreateSubtopicoForms: ToggleMap
   pendingAction: string
   onCreateTopico: (event: FormEvent<HTMLFormElement>, categoriaId: number) => void
-  onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
+  onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number, subtopicoPaiId?: number) => void
   onUpdateTopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
   onUpdateSubtopico: (event: FormEvent<HTMLFormElement>, subtopicoId: number) => void
   onEditTopico: (topico: Topico) => void
@@ -514,7 +517,7 @@ type CategoriaDetailProps = {
   onDeleteTopico: (topico: Topico) => void
   onDeleteSubtopico: (subtopico: Subtopico) => void
   onShowCreateTopicoFormChange: (value: boolean) => void
-  onShowCreateSubtopicoFormChange: (topicoId: number, value: boolean) => void
+  onShowCreateSubtopicoFormChange: (formKey: number, value: boolean) => void
   onTopicoNameChange: (categoriaId: number, value: string) => void
   onSubtopicoNameChange: (topicoId: number, value: string) => void
   onTopicoEditNameChange: (topicoId: number, value: string) => void
@@ -616,7 +619,9 @@ function CategoriaDetail({
               subtopicoEditId={subtopicoEditId}
               subtopicoEditNames={subtopicoEditNames}
               showCreateSubtopicoForm={showCreateSubtopicoForms[topico.id] ?? false}
+              showCreateSubtopicoForms={showCreateSubtopicoForms}
               subtopicoName={subtopicoNames[topico.id] ?? ''}
+              subtopicoNames={subtopicoNames}
               topicoEditName={topicoEditNames[topico.id] ?? topico.nome}
               topicoIsEditing={topicoEditId === topico.id}
               topico={topico}
@@ -635,16 +640,18 @@ type TopicoCardProps = {
   topicoIsEditing: boolean
   subtopicoEditId: number | null
   subtopicoEditNames: FieldMap
+  subtopicoNames: FieldMap
   showCreateSubtopicoForm: boolean
+  showCreateSubtopicoForms: ToggleMap
   pendingAction: string
-  onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
+  onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number, subtopicoPaiId?: number) => void
   onUpdateTopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
   onUpdateSubtopico: (event: FormEvent<HTMLFormElement>, subtopicoId: number) => void
   onEditTopico: (topico: Topico) => void
   onEditSubtopico: (subtopico: Subtopico) => void
   onDeleteTopico: (topico: Topico) => void
   onDeleteSubtopico: (subtopico: Subtopico) => void
-  onShowCreateSubtopicoFormChange: (topicoId: number, value: boolean) => void
+  onShowCreateSubtopicoFormChange: (formKey: number, value: boolean) => void
   onSubtopicoNameChange: (topicoId: number, value: string) => void
   onTopicoEditNameChange: (topicoId: number, value: string) => void
   onSubtopicoEditNameChange: (subtopicoId: number, value: string) => void
@@ -669,7 +676,9 @@ function TopicoCard({
   pendingAction,
   subtopicoEditId,
   subtopicoEditNames,
+  subtopicoNames,
   showCreateSubtopicoForm,
+  showCreateSubtopicoForms,
   subtopicoName,
   topicoEditName,
   topicoIsEditing,
@@ -728,56 +737,24 @@ function TopicoCard({
       ) : (
         <div className="subtopic-list" ref={subtopicosRef}>
           {topico.subtopicos.map((subtopico) => (
-            <div
-              className={subtopico.concluido ? 'subtopic-row subtopic-row--done' : 'subtopic-row'}
-              data-item-id={subtopico.id}
+            <SubtopicoRow
               key={subtopico.id}
-            >
-              <button aria-label={`Reordenar subtopico ${subtopico.nome}`} className="drag-handle" type="button">
-                ::
-              </button>
-              <input
-                aria-label={`Marcar subtopico ${subtopico.nome}`}
-                checked={subtopico.concluido}
-                disabled={pendingAction === `toggle-${subtopico.id}`}
-                onChange={(event) => onToggleSubtopico(subtopico.id, event.target.checked)}
-                type="checkbox"
-              />
-              {subtopicoEditId === subtopico.id ? (
-                <form className="rename-form" onSubmit={(event) => onUpdateSubtopico(event, subtopico.id)}>
-                  <input
-                    aria-label={`Novo nome do subtopico ${subtopico.nome}`}
-                    autoFocus
-                    onChange={(event) => onSubtopicoEditNameChange(subtopico.id, event.target.value)}
-                    value={subtopicoEditNames[subtopico.id] ?? subtopico.nome}
-                  />
-                  <SubmitButton pending={pendingAction === `subtopico-edit-${subtopico.id}`}>Salvar</SubmitButton>
-                </form>
-              ) : (
-                <span>{subtopico.nome}</span>
-              )}
-              <div className="item-actions item-actions--compact">
-                <button
-                  aria-label={`Editar subtopico ${subtopico.nome}`}
-                  className="icon-button"
-                  onClick={() => onEditSubtopico(subtopico)}
-                  title="Editar subtopico"
-                  type="button"
-                >
-                  &#9998;
-                </button>
-                <button
-                  aria-label={`Excluir subtopico ${subtopico.nome}`}
-                  className="icon-button icon-button--danger"
-                  disabled={pendingAction === `subtopico-delete-${subtopico.id}`}
-                  onClick={() => onDeleteSubtopico(subtopico)}
-                  title="Excluir subtopico"
-                  type="button"
-                >
-                  &times;
-                </button>
-              </div>
-            </div>
+              onCreateSubtopico={onCreateSubtopico}
+              onDeleteSubtopico={onDeleteSubtopico}
+              onEditSubtopico={onEditSubtopico}
+              onShowCreateSubtopicoFormChange={onShowCreateSubtopicoFormChange}
+              onSubtopicoEditNameChange={onSubtopicoEditNameChange}
+              onSubtopicoNameChange={onSubtopicoNameChange}
+              onToggleSubtopico={onToggleSubtopico}
+              onUpdateSubtopico={onUpdateSubtopico}
+              pendingAction={pendingAction}
+              showCreateSubtopicoForms={showCreateSubtopicoForms}
+              subtopico={subtopico}
+              subtopicoEditId={subtopicoEditId}
+              subtopicoEditNames={subtopicoEditNames}
+              subtopicoNames={subtopicoNames}
+              topico={topico}
+            />
           ))}
         </div>
       )}
@@ -807,5 +784,145 @@ function TopicoCard({
         ) : null}
       </div>
     </article>
+  )
+}
+
+type SubtopicoRowProps = {
+  topico: Topico
+  subtopico: Subtopico
+  subtopicoEditId: number | null
+  subtopicoEditNames: FieldMap
+  subtopicoNames: FieldMap
+  showCreateSubtopicoForms: ToggleMap
+  pendingAction: string
+  onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number, subtopicoPaiId?: number) => void
+  onUpdateSubtopico: (event: FormEvent<HTMLFormElement>, subtopicoId: number) => void
+  onEditSubtopico: (subtopico: Subtopico) => void
+  onDeleteSubtopico: (subtopico: Subtopico) => void
+  onShowCreateSubtopicoFormChange: (formKey: number, value: boolean) => void
+  onSubtopicoNameChange: (formKey: number, value: string) => void
+  onSubtopicoEditNameChange: (subtopicoId: number, value: string) => void
+  onToggleSubtopico: (subtopicoId: number, concluido: boolean) => void
+}
+
+function SubtopicoRow({
+  onCreateSubtopico,
+  onDeleteSubtopico,
+  onEditSubtopico,
+  onShowCreateSubtopicoFormChange,
+  onSubtopicoEditNameChange,
+  onSubtopicoNameChange,
+  onToggleSubtopico,
+  onUpdateSubtopico,
+  pendingAction,
+  showCreateSubtopicoForms,
+  subtopico,
+  subtopicoEditId,
+  subtopicoEditNames,
+  subtopicoNames,
+  topico,
+}: SubtopicoRowProps) {
+  const childFormKey = subtopicoFormKey(topico.id, subtopico.id)
+  const showChildForm = showCreateSubtopicoForms[childFormKey] ?? false
+  const childSubtopicos = subtopico.subtopicos ?? []
+
+  return (
+    <div className="subtopic-tree-item" data-item-id={subtopico.id}>
+      <div className={subtopico.concluido ? 'subtopic-row subtopic-row--done' : 'subtopic-row'}>
+        <button aria-label={`Reordenar subtopico ${subtopico.nome}`} className="drag-handle" type="button">
+          ::
+        </button>
+        <input
+          aria-label={`Marcar subtopico ${subtopico.nome}`}
+          checked={subtopico.concluido}
+          disabled={pendingAction === `toggle-${subtopico.id}`}
+          onChange={(event) => onToggleSubtopico(subtopico.id, event.target.checked)}
+          type="checkbox"
+        />
+        {subtopicoEditId === subtopico.id ? (
+          <form className="rename-form" onSubmit={(event) => onUpdateSubtopico(event, subtopico.id)}>
+            <input
+              aria-label={`Novo nome do subtopico ${subtopico.nome}`}
+              autoFocus
+              onChange={(event) => onSubtopicoEditNameChange(subtopico.id, event.target.value)}
+              value={subtopicoEditNames[subtopico.id] ?? subtopico.nome}
+            />
+            <SubmitButton pending={pendingAction === `subtopico-edit-${subtopico.id}`}>Salvar</SubmitButton>
+          </form>
+        ) : (
+          <span>{subtopico.nome}</span>
+        )}
+        <div className="item-actions item-actions--compact">
+          <button
+            aria-label={`Adicionar subtopico dentro de ${subtopico.nome}`}
+            className="icon-button icon-button--success"
+            onClick={() => onShowCreateSubtopicoFormChange(childFormKey, true)}
+            title="Adicionar subtopico filho"
+            type="button"
+          >
+            +
+          </button>
+          <button
+            aria-label={`Editar subtopico ${subtopico.nome}`}
+            className="icon-button"
+            onClick={() => onEditSubtopico(subtopico)}
+            title="Editar subtopico"
+            type="button"
+          >
+            &#9998;
+          </button>
+          <button
+            aria-label={`Excluir subtopico ${subtopico.nome}`}
+            className="icon-button icon-button--danger"
+            disabled={pendingAction === `subtopico-delete-${subtopico.id}`}
+            onClick={() => onDeleteSubtopico(subtopico)}
+            title="Excluir subtopico"
+            type="button"
+          >
+            &times;
+          </button>
+        </div>
+      </div>
+
+      {showChildForm ? (
+        <form className="inline-form inline-form--row add-row subtopic-child-form" onSubmit={(event) => onCreateSubtopico(event, topico.id, subtopico.id)}>
+          <label>
+            Nome do subtopico filho
+            <input
+              autoFocus
+              onChange={(event) => onSubtopicoNameChange(childFormKey, event.target.value)}
+              placeholder="Ex.: Caso de borda"
+              value={subtopicoNames[childFormKey] ?? ''}
+            />
+          </label>
+          <SubmitButton pending={pendingAction === `subtopico-${childFormKey}`}>Criar subtopico</SubmitButton>
+        </form>
+      ) : null}
+
+      {childSubtopicos.length > 0 ? (
+        <div className="subtopic-children">
+          {childSubtopicos.map((childSubtopico) => (
+            <SubtopicoRow
+              key={childSubtopico.id}
+              onCreateSubtopico={onCreateSubtopico}
+              onDeleteSubtopico={onDeleteSubtopico}
+              onEditSubtopico={onEditSubtopico}
+              onShowCreateSubtopicoFormChange={onShowCreateSubtopicoFormChange}
+              onSubtopicoEditNameChange={onSubtopicoEditNameChange}
+              onSubtopicoNameChange={onSubtopicoNameChange}
+              onToggleSubtopico={onToggleSubtopico}
+              onUpdateSubtopico={onUpdateSubtopico}
+              pendingAction={pendingAction}
+              showCreateSubtopicoForms={showCreateSubtopicoForms}
+              subtopico={childSubtopico}
+              subtopicoEditId={subtopicoEditId}
+              subtopicoEditNames={subtopicoEditNames}
+              subtopicoNames={subtopicoNames}
+              topico={topico}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
   )
 }

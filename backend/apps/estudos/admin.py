@@ -33,6 +33,6 @@ class TopicoAdmin(admin.ModelAdmin):
 
 @admin.register(Subtopico)
 class SubtopicoAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'topico', 'concluido', 'ordem', 'concluido_em')
+    list_display = ('nome', 'topico', 'subtopico_pai', 'concluido', 'ordem', 'concluido_em')
     list_filter = ('concluido', 'topico__usuario')
-    search_fields = ('nome', 'topico__nome')
+    search_fields = ('nome', 'topico__nome', 'subtopico_pai__nome')

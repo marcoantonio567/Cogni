@@ -99,11 +99,15 @@ const cloneOverview = (): EstudosOverview => {
   }
 }
 
+const flattenSubtopicos = (subtopicos: Subtopico[]): Subtopico[] =>
+  subtopicos.flatMap((subtopico) => [subtopico, ...flattenSubtopicos(subtopico.subtopicos ?? [])])
+
 const refreshMockProgress = () => {
   categorias = categorias.map((categoria) => {
     const topicos = categoria.topicos.map((topico) => {
-      const totalSubtopicos = topico.subtopicos.length
-      const subtopicosConcluidos = topico.subtopicos.filter((subtopico) => subtopico.concluido).length
+      const todosSubtopicos = flattenSubtopicos(topico.subtopicos)
+      const totalSubtopicos = todosSubtopicos.length
+      const subtopicosConcluidos = todosSubtopicos.filter((subtopico) => subtopico.concluido).length
 
       return {
         ...topico,
@@ -133,7 +137,68 @@ const findSubtopico = (subtopicoId: number): Subtopico | undefined =>
   categorias
     .flatMap((categoria) => categoria.topicos)
     .flatMap((topico) => topico.subtopicos)
+    .flatMap((subtopico) => [subtopico, ...flattenSubtopicos(subtopico.subtopicos ?? [])])
     .find((subtopico) => subtopico.id === subtopicoId)
+
+const addSubtopicoChild = (subtopicos: Subtopico[], input: CreateSubtopicoInput): Subtopico[] =>
+  subtopicos.map((subtopico) => {
+    if (subtopico.id === input.subtopicoPaiId) {
+      const filhos = subtopico.subtopicos ?? []
+
+      return {
+        ...subtopico,
+        subtopicos: [
+          ...filhos,
+          {
+            id: nextId++,
+            nome: input.nome,
+            concluido: false,
+            ordem: filhos.length + 1,
+            observacoes: input.observacoes,
+            subtopicoPaiId: subtopico.id,
+            subtopicos: [],
+          },
+        ],
+      }
+    }
+
+    return {
+      ...subtopico,
+      subtopicos: addSubtopicoChild(subtopico.subtopicos ?? [], input),
+    }
+  })
+
+const updateSubtopicos = (subtopicos: Subtopico[], input: UpdateSubtopicoInput): Subtopico[] =>
+  subtopicos.map((subtopico) =>
+    subtopico.id === input.id
+      ? {
+          ...subtopico,
+          nome: input.nome,
+          observacoes: input.observacoes ?? subtopico.observacoes,
+        }
+      : {
+          ...subtopico,
+          subtopicos: updateSubtopicos(subtopico.subtopicos ?? [], input),
+        },
+  )
+
+const deleteSubtopicoById = (subtopicos: Subtopico[], subtopicoId: number): Subtopico[] =>
+  subtopicos
+    .filter((subtopico) => subtopico.id !== subtopicoId)
+    .map((subtopico) => ({
+      ...subtopico,
+      subtopicos: deleteSubtopicoById(subtopico.subtopicos ?? [], subtopicoId),
+    }))
+
+const toggleSubtopicoById = (subtopicos: Subtopico[], subtopicoId: number, concluido: boolean): Subtopico[] =>
+  subtopicos.map((subtopico) =>
+    subtopico.id === subtopicoId
+      ? { ...subtopico, concluido }
+      : {
+          ...subtopico,
+          subtopicos: toggleSubtopicoById(subtopico.subtopicos ?? [], subtopicoId, concluido),
+        },
+  )
 
 const reorderByIds = <T extends { id: number; ordem: number }>(items: T[], ids: number[]) => {
   const byId = new Map(items.map((item) => [item.id, item]))
@@ -298,6 +363,13 @@ export const mockApi = {
           return topico
         }
 
+        if (input.subtopicoPaiId) {
+          return {
+            ...topico,
+            subtopicos: addSubtopicoChild(topico.subtopicos, input),
+          }
+        }
+
         return {
           ...topico,
           subtopicos: [
@@ -308,6 +380,8 @@ export const mockApi = {
               concluido: false,
               ordem: topico.subtopicos.length + 1,
               observacoes: input.observacoes,
+              subtopicoPaiId: null,
+              subtopicos: [],
             },
           ],
         }
@@ -324,15 +398,7 @@ export const mockApi = {
       ...categoria,
       topicos: categoria.topicos.map((topico) => ({
         ...topico,
-        subtopicos: topico.subtopicos.map((subtopico) =>
-          subtopico.id === input.id
-            ? {
-                ...subtopico,
-                nome: input.nome,
-                observacoes: input.observacoes ?? subtopico.observacoes,
-              }
-            : subtopico,
-        ),
+        subtopicos: updateSubtopicos(topico.subtopicos, input),
       })),
     }))
 
@@ -346,7 +412,7 @@ export const mockApi = {
       ...categoria,
       topicos: categoria.topicos.map((topico) => ({
         ...topico,
-        subtopicos: topico.subtopicos.filter((subtopico) => subtopico.id !== subtopicoId),
+        subtopicos: deleteSubtopicoById(topico.subtopicos, subtopicoId),
       })),
     }))
 
@@ -360,9 +426,7 @@ export const mockApi = {
       ...categoria,
       topicos: categoria.topicos.map((topico) => ({
         ...topico,
-        subtopicos: topico.subtopicos.map((subtopico) =>
-          subtopico.id === subtopicoId ? { ...subtopico, concluido } : subtopico,
-        ),
+        subtopicos: toggleSubtopicoById(topico.subtopicos, subtopicoId, concluido),
       })),
     }))
 

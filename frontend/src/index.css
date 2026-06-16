@@ -775,6 +775,15 @@ input:focus {
   border-color: #98a6ba;
 }
 
+.icon-button--success {
+  color: #047857;
+}
+
+.icon-button--success:hover {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
 .icon-button--danger {
   color: #c2410c;
 }
@@ -830,6 +839,23 @@ input:focus {
   grid-template-columns: auto auto minmax(0, 1fr) auto;
   min-height: 46px;
   padding: 6px 10px;
+}
+
+.subtopic-tree-item {
+  display: grid;
+  gap: 8px;
+}
+
+.subtopic-children {
+  border-left: 2px solid #d8dee8;
+  display: grid;
+  gap: 8px;
+  margin-left: 17px;
+  padding-left: 14px;
+}
+
+.subtopic-child-form {
+  margin-left: 17px;
 }
 
 .subtopic-row--done {

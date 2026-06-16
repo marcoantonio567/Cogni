@@ -108,6 +108,8 @@ class ProgressoService:
     @classmethod
     def registrar_subtopico(cls, subtopico, usuario=None):
         cls._validar_topico_usuario(subtopico.topico, usuario)
+        if subtopico.subtopico_pai_id and subtopico.subtopico_pai.topico_id != subtopico.topico_id:
+            raise ValidationError('Subtopico pai deve pertencer ao mesmo topico.')
         if subtopico.concluido and subtopico.concluido_em is None:
             subtopico.concluido_em = timezone.now()
             subtopico.save(update_fields=['concluido_em', 'atualizado_em'])
@@ -150,7 +152,7 @@ class ProgressoService:
     def reordenar_subtopicos(cls, topico, ids_ordenados, usuario=None):
         cls._validar_topico_usuario(topico, usuario)
         ids_ordenados = [int(item) for item in ids_ordenados]
-        subtopicos = list(topico.subtopicos.select_for_update().order_by('id'))
+        subtopicos = list(topico.subtopicos.select_for_update().filter(subtopico_pai__isnull=True).order_by('id'))
         ids_atuais = {subtopico.id for subtopico in subtopicos}
         if set(ids_ordenados) != ids_atuais:
             raise ValidationError('A ordem deve conter exatamente os subtopicos do topico.')
@@ -159,7 +161,28 @@ class ProgressoService:
             nova_ordem = ordem_por_id[subtopico.id]
             if subtopico.ordem != nova_ordem:
                 Subtopico.objects.filter(pk=subtopico.pk).update(ordem=nova_ordem)
-        return topico.subtopicos.order_by('ordem', 'id')
+        return topico.subtopicos.filter(subtopico_pai__isnull=True).order_by('ordem', 'id')
+
+    @classmethod
+    @transaction.atomic
+    def reordenar_subtopicos_filhos(cls, subtopico_pai, ids_ordenados, usuario=None):
+        subtopico_pai = (
+            Subtopico.objects.select_for_update()
+            .select_related('topico', 'topico__categoria')
+            .get(pk=subtopico_pai.pk)
+        )
+        cls._validar_topico_usuario(subtopico_pai.topico, usuario)
+        ids_ordenados = [int(item) for item in ids_ordenados]
+        subtopicos = list(subtopico_pai.subtopicos_filhos.select_for_update().order_by('id'))
+        ids_atuais = {subtopico.id for subtopico in subtopicos}
+        if set(ids_ordenados) != ids_atuais:
+            raise ValidationError('A ordem deve conter exatamente os subtopicos filhos do subtopico pai.')
+        ordem_por_id = {subtopico_id: indice for indice, subtopico_id in enumerate(ids_ordenados, start=1)}
+        for subtopico in subtopicos:
+            nova_ordem = ordem_por_id[subtopico.id]
+            if subtopico.ordem != nova_ordem:
+                Subtopico.objects.filter(pk=subtopico.pk).update(ordem=nova_ordem)
+        return subtopico_pai.subtopicos_filhos.order_by('ordem', 'id')
 
     @classmethod
     def grafico_semanal(cls, usuario):

@@ -62,6 +62,13 @@ class Subtopico(models.Model):
         on_delete=models.CASCADE,
         related_name='subtopicos',
     )
+    subtopico_pai = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        related_name='subtopicos_filhos',
+        null=True,
+        blank=True,
+    )
     concluido = models.BooleanField(default=False)
     ordem = models.PositiveIntegerField(default=0)
     observacoes = models.TextField(blank=True)
@@ -73,6 +80,7 @@ class Subtopico(models.Model):
         ordering = ['ordem', 'id']
         indexes = [
             models.Index(fields=['topico', 'ordem']),
+            models.Index(fields=['topico', 'subtopico_pai', 'ordem']),
             models.Index(fields=['concluido', 'concluido_em']),
         ]
 

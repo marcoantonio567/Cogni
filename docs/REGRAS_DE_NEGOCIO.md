@@ -145,14 +145,21 @@ listados acima.
 
 - `nome`
 - `topico`
+- `subtopico_pai` opcional, apontando para outro `Subtopico` do mesmo `Topico`
 - `concluido`
 - `ordem`
 - `observacoes`
+
+Um `Subtopico` pode conter outros subtopicos filhos. Subtopicos sem
+`subtopico_pai` pertencem diretamente ao `Topico`; subtopicos com
+`subtopico_pai` pertencem ao subtopico informado. Todos continuam vinculados ao
+mesmo `Topico`, e o progresso deve contabilizar subtopicos de todos os niveis.
 
 ## Funcionalidades Obrigatorias
 
 - CRUD completo para `Categoria`, `Topico` e `Subtopico` via API.
 - Interface frontend completa para `Categoria`, `Topico` e `Subtopico`.
+- Interface e API devem permitir criar subtopicos dentro de outro subtopico.
 - Barra de progresso geral.
 - Barra de progresso por categoria.
 - Barra de progresso por topico.

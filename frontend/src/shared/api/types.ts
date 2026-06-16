@@ -39,6 +39,8 @@ export type Subtopico = {
   concluido: boolean
   ordem: number
   observacoes?: string
+  subtopicoPaiId?: number | null
+  subtopicos?: Subtopico[]
 }
 
 export type Topico = {
@@ -91,6 +93,7 @@ export type UpdateTopicoInput = {
 export type CreateSubtopicoInput = {
   topicoId: number
   nome: string
+  subtopicoPaiId?: number
   observacoes?: string
 }
 

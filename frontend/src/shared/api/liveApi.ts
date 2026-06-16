@@ -74,11 +74,13 @@ export const liveApi = {
   },
 
   async createSubtopico(input: CreateSubtopicoInput) {
-    const { data } = await httpClient.post<EstudosOverview>(
-      `/estudos/topicos/${input.topicoId}/subtopicos/`,
-      { nome: input.nome, observacoes: input.observacoes },
-    )
-    return data
+    await httpClient.post('/estudos/subtopicos/', {
+      nome: input.nome,
+      topico: input.topicoId,
+      observacoes: input.observacoes,
+      subtopico_pai: input.subtopicoPaiId,
+    })
+    return this.estudosOverview()
   },
 
   async updateSubtopico(input: UpdateSubtopicoInput) {

@@ -61,6 +61,48 @@ class EstudosAPITests(APITestCase):
         self.assertEqual(categoria.progresso_cache, Decimal('50.00'))
         self.assertEqual(resposta.data['progresso']['subtopicos_concluidos'], 1)
 
+    def test_subtopico_pode_ter_subtopico_filho_no_mesmo_topico(self):
+        categoria, topico = self.criar_arvore()
+        subtopico_pai = Subtopico.objects.create(nome='Serializers', topico=topico, ordem=1)
+
+        resposta = self.client.post(
+            '/api/v1/estudos/subtopicos/',
+            {
+                'nome': 'Validar payload',
+                'topico': topico.id,
+                'subtopico_pai': subtopico_pai.id,
+                'ordem': 1,
+            },
+            format='json',
+        )
+
+        self.assertEqual(resposta.status_code, status.HTTP_201_CREATED)
+        subtopico_filho = Subtopico.objects.get(pk=resposta.data['id'])
+        topico.refresh_from_db()
+        categoria.refresh_from_db()
+        self.assertEqual(subtopico_filho.subtopico_pai_id, subtopico_pai.id)
+        self.assertEqual(subtopico_filho.topico_id, topico.id)
+        self.assertEqual(topico.total_subtopicos, 2)
+        self.assertEqual(categoria.total_subtopicos, 2)
+
+    def test_subtopico_filho_rejeita_pai_de_outro_usuario(self):
+        _, topico = self.criar_arvore()
+        _, topico_alheio = self.criar_arvore(self.outro_usuario)
+        subtopico_pai_alheio = Subtopico.objects.create(nome='Alheio', topico=topico_alheio, ordem=1)
+
+        resposta = self.client.post(
+            '/api/v1/estudos/subtopicos/',
+            {
+                'nome': 'Tentativa',
+                'topico': topico.id,
+                'subtopico_pai': subtopico_pai_alheio.id,
+                'ordem': 1,
+            },
+            format='json',
+        )
+
+        self.assertEqual(resposta.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_ordenacao_rejeita_ids_de_outro_usuario(self):
         categoria, topico = self.criar_arvore()
         categoria_alheia, topico_alheio = self.criar_arvore(self.outro_usuario)

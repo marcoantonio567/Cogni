@@ -87,7 +87,7 @@ class TopicoViewSet(UserOwnershipMixin, ProgressoMixin, viewsets.ModelViewSet):
 
 
 class SubtopicoViewSet(ProgressoMixin, viewsets.ModelViewSet):
-    queryset = Subtopico.objects.select_related('topico', 'topico__categoria').all()
+    queryset = Subtopico.objects.select_related('topico', 'topico__categoria', 'subtopico_pai').prefetch_related('subtopicos_filhos').all()
     serializer_class = SubtopicoSerializer
     permission_classes = [IsAuthenticated]
 
@@ -135,6 +135,21 @@ class SubtopicoViewSet(ProgressoMixin, viewsets.ModelViewSet):
         payload = SubtopicoSerializer(subtopico).data
         payload['progresso'] = ProgressoService.calcular_progresso_geral(request.user)
         return Response(payload)
+
+    @action(detail=True, methods=['post'], url_path='ordenar-subtopicos')
+    def ordenar_subtopicos(self, request, pk=None):
+        subtopico = self.get_object()
+        serializer = OrdenacaoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            subtopicos = ProgressoService.reordenar_subtopicos_filhos(
+                subtopico,
+                serializer.validated_data['ids'],
+                request.user,
+            )
+        except DjangoValidationError as exc:
+            raise ValidationError(exc.messages) from exc
+        return Response(SubtopicoSerializer(subtopicos, many=True).data)
 
 
 class ProgressoGeralAPIView(APIView):
