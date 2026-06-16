@@ -27,15 +27,30 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /entrar/i })).toBeInTheDocument()
   })
 
-  it('logs in through the API facade and shows mock-backed studies without a page reload', async () => {
+  it('logs in through the API facade and shows mock-backed categories without a page reload', async () => {
     const user = userEvent.setup()
     renderApp('/login')
 
     await user.click(screen.getByRole('button', { name: /entrar/i }))
 
-    expect(await screen.findByRole('heading', { name: /plano de estudos/i })).toBeInTheDocument()
-    expect(screen.getByText(/modo mock temporário ativo/i)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /categorias/i })).toBeInTheDocument()
+    expect(screen.getByText(/modo mock tempor/i)).toBeInTheDocument()
     expect(screen.getAllByText(/Fundamentos de Django API/i).length).toBeGreaterThan(0)
+  })
+
+  it('opens a category card and returns to the category menu', async () => {
+    const user = userEvent.setup()
+    renderApp('/login')
+
+    await user.click(screen.getByRole('button', { name: /entrar/i }))
+    await user.click(await screen.findByRole('button', { name: /Fundamentos de Django API/i }))
+
+    expect(screen.getByRole('heading', { level: 1, name: /Fundamentos de Django API/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Contratos REST/i })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /voltar para categorias/i }))
+
+    expect(screen.getByRole('heading', { name: /categorias/i })).toBeInTheDocument()
   })
 
   it('keeps the backend URL configurable by environment', () => {

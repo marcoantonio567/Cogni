@@ -11,7 +11,7 @@ type FieldMap = Record<number, string>
 
 export function EstudosPage() {
   const [overview, setOverview] = useState<EstudosOverview | null>(null)
-  const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(null)
+  const [activeCategoriaId, setActiveCategoriaId] = useState<number | null>(null)
   const [categoriaNome, setCategoriaNome] = useState('')
   const [categoriaDescricao, setCategoriaDescricao] = useState('')
   const [categoriaEditId, setCategoriaEditId] = useState<number | null>(null)
@@ -25,7 +25,6 @@ export function EstudosPage() {
   const loadOverview = useCallback(async () => {
     const data = await api.estudosOverview()
     setOverview(data)
-    setSelectedCategoriaId((current) => current ?? data.categorias[0]?.id ?? null)
   }, [])
 
   useEffect(() => {
@@ -34,16 +33,13 @@ export function EstudosPage() {
     api
       .estudosOverview()
       .then((data) => {
-        if (!active) {
-          return
+        if (active) {
+          setOverview(data)
         }
-
-        setOverview(data)
-        setSelectedCategoriaId((current) => current ?? data.categorias[0]?.id ?? null)
       })
       .catch(() => {
         if (active) {
-          setError('Não foi possível carregar os estudos pela API configurada.')
+          setError('Nao foi possivel carregar os estudos pela API configurada.')
         }
       })
 
@@ -53,8 +49,8 @@ export function EstudosPage() {
   }, [])
 
   const selectedCategoria = useMemo(
-    () => overview?.categorias.find((categoria) => categoria.id === selectedCategoriaId) ?? overview?.categorias[0] ?? null,
-    [overview, selectedCategoriaId],
+    () => overview?.categorias.find((categoria) => categoria.id === activeCategoriaId) ?? null,
+    [activeCategoriaId, overview],
   )
 
   const totals = useMemo(() => {
@@ -68,12 +64,12 @@ export function EstudosPage() {
 
   const replaceOverview = (nextOverview: EstudosOverview) => {
     setOverview(nextOverview)
-    setSelectedCategoriaId((current) => {
-      if (current && nextOverview.categorias.some((categoria) => categoria.id === current)) {
+    setActiveCategoriaId((current) => {
+      if (!current || nextOverview.categorias.some((categoria) => categoria.id === current)) {
         return current
       }
 
-      return nextOverview.categorias[0]?.id ?? null
+      return null
     })
   }
 
@@ -90,7 +86,7 @@ export function EstudosPage() {
         await loadOverview()
       }
     } catch {
-      setError('A API não confirmou a operação. Recarreguei os dados visuais quando possível.')
+      setError('A API nao confirmou a operacao. Recarreguei os dados visuais quando possivel.')
       await loadOverview().catch(() => undefined)
     } finally {
       setPendingAction('')
@@ -104,7 +100,6 @@ export function EstudosPage() {
       const result = await api.createCategoria({ nome: categoriaNome, descricao: categoriaDescricao })
       setCategoriaNome('')
       setCategoriaDescricao('')
-      setSelectedCategoriaId(result.categorias.at(-1)?.id ?? null)
       return result
     })
   }
@@ -134,11 +129,15 @@ export function EstudosPage() {
     void runAction(`categoria-delete-${categoriaId}`, async () => api.deleteCategoria(categoriaId))
   }
 
-  const selectCategoria = (categoria: Categoria) => {
-    setSelectedCategoriaId(categoria.id)
+  const editCategoria = (categoria: Categoria) => {
     setCategoriaEditId(categoria.id)
     setCategoriaEditNome(categoria.nome)
     setCategoriaEditDescricao(categoria.descricao)
+  }
+
+  const openCategoria = (categoria: Categoria) => {
+    editCategoria(categoria)
+    setActiveCategoriaId(categoria.id)
   }
 
   const createTopico = (event: FormEvent<HTMLFormElement>, categoriaId: number) => {
@@ -189,64 +188,45 @@ export function EstudosPage() {
     return (
       <main className="workspace">
         <PageHeader
-          description="Buscando categorias, tópicos, subtópicos e progresso pela API configurada."
+          description="Buscando categorias, topicos, subtopicos e progresso pela API configurada."
           eyebrow="Estudos"
-          title="Carregando área de estudos"
+          title="Carregando area de estudos"
         />
       </main>
     )
   }
 
-  const activeCategoriaEditNome =
-    selectedCategoria && categoriaEditId === selectedCategoria.id ? categoriaEditNome : selectedCategoria?.nome ?? ''
-  const activeCategoriaEditDescricao =
-    selectedCategoria && categoriaEditId === selectedCategoria.id ? categoriaEditDescricao : selectedCategoria?.descricao ?? ''
+  if (!selectedCategoria) {
+    return (
+      <main className="workspace">
+        <PageHeader
+          description="Navegue pelas categorias em cards. Abra uma categoria para ver os topicos e subtopicos."
+          eyebrow="Estudos"
+          title="Categorias"
+        />
 
-  return (
-    <main className="workspace">
-      <PageHeader
-        description="Escolha uma categoria, acompanhe o progresso e marque subtópicos sem perder o contexto."
-        eyebrow="Estudos"
-        title="Plano de estudos"
-      />
+        {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
 
-      {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
+        <OverviewBand overview={overview} totals={totals} />
 
-      <section className="overview-band" aria-label="Progresso geral">
-        <div>
-          <span>Progresso geral</span>
-          <strong>{overview.progressoGeral}%</strong>
-        </div>
-        <ProgressBar label="Progresso geral dos estudos" value={overview.progressoGeral} />
-        <div className="quick-stats" aria-label="Resumo dos estudos">
-          <span>{totals.totalCategorias} categorias</span>
-          <span>{totals.totalTopicos} tópicos</span>
-          <span>
-            {totals.concluidos}/{totals.totalSubtopicos} concluídos
-          </span>
-        </div>
-      </section>
-
-      <section className="study-grid">
-        <aside className="category-panel" aria-label="Categorias">
-          <div className="panel-heading panel-heading--split">
-            <div>
-              <span>Organização</span>
-              <h2>Categorias</h2>
+        <section className="category-manager" aria-label="Categorias">
+          <form className="stack-form category-create-panel" onSubmit={createCategoria}>
+            <div className="panel-heading panel-heading--split">
+              <div>
+                <span>Nova categoria</span>
+                <h2>Criar categoria</h2>
+              </div>
+              <strong>{totals.totalCategorias}</strong>
             </div>
-            <strong>{totals.totalCategorias}</strong>
-          </div>
-
-          <form className="stack-form compact-form" onSubmit={createCategoria}>
             <label>
               Nome da categoria
               <input onChange={(event) => setCategoriaNome(event.target.value)} placeholder="Ex.: Django REST" required value={categoriaNome} />
             </label>
             <label>
-              Descrição
+              Descricao
               <input
                 onChange={(event) => setCategoriaDescricao(event.target.value)}
-                placeholder="Ex.: API, auth e permissões"
+                placeholder="Ex.: API, auth e permissoes"
                 required
                 value={categoriaDescricao}
               />
@@ -254,75 +234,173 @@ export function EstudosPage() {
             <SubmitButton pending={pendingAction === 'categoria'}>Criar categoria</SubmitButton>
           </form>
 
-          <div className="category-list">
-            {overview.categorias.map((categoria) => (
-              <button
-                className={categoria.id === selectedCategoria?.id ? 'category-button category-button--active' : 'category-button'}
-                key={categoria.id}
-                onClick={() => selectCategoria(categoria)}
-                type="button"
-              >
-                <span>
-                  <strong>{categoria.nome}</strong>
-                  <small>
-                    {categoria.subtopicosConcluidos}/{categoria.totalSubtopicos} subtópicos
-                  </small>
-                </span>
-                <b>{categoria.progresso}%</b>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <section className="topics-panel">
-          {selectedCategoria ? (
-            <CategoriaDetail
-              categoria={selectedCategoria}
-              categoriaEditDescricao={activeCategoriaEditDescricao}
-              categoriaEditNome={activeCategoriaEditNome}
-              onCategoriaEditDescricaoChange={(value) => {
-                setCategoriaEditId(selectedCategoria.id)
-                setCategoriaEditNome(activeCategoriaEditNome)
-                setCategoriaEditDescricao(value)
-              }}
-              onCategoriaEditNomeChange={(value) => {
-                setCategoriaEditId(selectedCategoria.id)
-                setCategoriaEditNome(value)
-                setCategoriaEditDescricao(activeCategoriaEditDescricao)
-              }}
-              onCreateSubtopico={createSubtopico}
-              onCreateTopico={createTopico}
-              onDeleteCategoria={deleteCategoria}
-              onReorderSubtopicos={reorderSubtopicos}
-              onReorderTopicos={reorderTopicos}
-              onSubtopicoNameChange={(topicoId, value) => setSubtopicoNames((current) => ({ ...current, [topicoId]: value }))}
-              onToggleSubtopico={toggleSubtopico}
-              onTopicoNameChange={(categoriaId, value) => setTopicoNames((current) => ({ ...current, [categoriaId]: value }))}
-              onUpdateCategoria={updateCategoria}
-              pendingAction={pendingAction}
-              subtopicoNames={subtopicoNames}
-              topicoNames={topicoNames}
-            />
-          ) : (
+          {overview.categorias.length === 0 ? (
             <EmptyState description="Crie uma categoria para iniciar o fluxo de estudos." title="Sem categorias" />
+          ) : (
+            <div className="category-card-grid">
+              {overview.categorias.map((categoria) => (
+                <CategoriaCard
+                  categoria={categoria}
+                  editDescricao={categoriaEditId === categoria.id ? categoriaEditDescricao : categoria.descricao}
+                  editNome={categoriaEditId === categoria.id ? categoriaEditNome : categoria.nome}
+                  key={categoria.id}
+                  onDeleteCategoria={deleteCategoria}
+                  onEditDescricaoChange={(value) => {
+                    setCategoriaEditId(categoria.id)
+                    setCategoriaEditNome(categoriaEditId === categoria.id ? categoriaEditNome : categoria.nome)
+                    setCategoriaEditDescricao(value)
+                  }}
+                  onEditNomeChange={(value) => {
+                    setCategoriaEditId(categoria.id)
+                    setCategoriaEditNome(value)
+                    setCategoriaEditDescricao(categoriaEditId === categoria.id ? categoriaEditDescricao : categoria.descricao)
+                  }}
+                  onOpenCategoria={openCategoria}
+                  onUpdateCategoria={updateCategoria}
+                  pendingAction={pendingAction}
+                />
+              ))}
+            </div>
           )}
         </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="workspace">
+      <PageHeader
+        actions={
+          <button className="button button--ghost" onClick={() => setActiveCategoriaId(null)} type="button">
+            Voltar para categorias
+          </button>
+        }
+        description="Acompanhe o progresso e marque subtopicos da categoria selecionada."
+        eyebrow="Estudos"
+        title={selectedCategoria.nome}
+      />
+
+      {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
+
+      <OverviewBand overview={overview} totals={totals} />
+
+      <section className="topics-panel">
+        <CategoriaDetail
+          categoria={selectedCategoria}
+          onCreateSubtopico={createSubtopico}
+          onCreateTopico={createTopico}
+          onReorderSubtopicos={reorderSubtopicos}
+          onReorderTopicos={reorderTopicos}
+          onSubtopicoNameChange={(topicoId, value) => setSubtopicoNames((current) => ({ ...current, [topicoId]: value }))}
+          onToggleSubtopico={toggleSubtopico}
+          onTopicoNameChange={(categoriaId, value) => setTopicoNames((current) => ({ ...current, [categoriaId]: value }))}
+          pendingAction={pendingAction}
+          subtopicoNames={subtopicoNames}
+          topicoNames={topicoNames}
+        />
       </section>
     </main>
   )
 }
 
+type Totals = {
+  totalCategorias: number
+  totalTopicos: number
+  totalSubtopicos: number
+  concluidos: number
+}
+
+function OverviewBand({ overview, totals }: { overview: EstudosOverview; totals: Totals }) {
+  return (
+    <section className="overview-band" aria-label="Progresso geral">
+      <div>
+        <span>Progresso geral</span>
+        <strong>{overview.progressoGeral}%</strong>
+      </div>
+      <ProgressBar label="Progresso geral dos estudos" value={overview.progressoGeral} />
+      <div className="quick-stats" aria-label="Resumo dos estudos">
+        <span>{totals.totalCategorias} categorias</span>
+        <span>{totals.totalTopicos} topicos</span>
+        <span>
+          {totals.concluidos}/{totals.totalSubtopicos} concluidos
+        </span>
+      </div>
+    </section>
+  )
+}
+
+type CategoriaCardProps = {
+  categoria: Categoria
+  editNome: string
+  editDescricao: string
+  pendingAction: string
+  onOpenCategoria: (categoria: Categoria) => void
+  onUpdateCategoria: (event: FormEvent<HTMLFormElement>, categoriaId: number) => void
+  onDeleteCategoria: (categoriaId: number) => void
+  onEditNomeChange: (value: string) => void
+  onEditDescricaoChange: (value: string) => void
+}
+
+function CategoriaCard({
+  categoria,
+  editDescricao,
+  editNome,
+  onDeleteCategoria,
+  onEditDescricaoChange,
+  onEditNomeChange,
+  onOpenCategoria,
+  onUpdateCategoria,
+  pendingAction,
+}: CategoriaCardProps) {
+  return (
+    <article className="category-card">
+      <button className="category-card__open" onClick={() => onOpenCategoria(categoria)} type="button">
+        <span>
+          <strong>{categoria.nome}</strong>
+          <small>{categoria.descricao}</small>
+        </span>
+        <b>{categoria.progresso}%</b>
+      </button>
+
+      <ProgressBar label={`Progresso da categoria ${categoria.nome}`} value={categoria.progresso} />
+
+      <div className="category-card__stats">
+        <span>{categoria.topicos.length} topicos</span>
+        <span>
+          {categoria.subtopicosConcluidos}/{categoria.totalSubtopicos} subtopicos
+        </span>
+      </div>
+
+      <form className="category-card__edit" onSubmit={(event) => onUpdateCategoria(event, categoria.id)}>
+        <label>
+          Nome
+          <input onChange={(event) => onEditNomeChange(event.target.value)} required value={editNome} />
+        </label>
+        <label>
+          Descricao
+          <input onChange={(event) => onEditDescricaoChange(event.target.value)} required value={editDescricao} />
+        </label>
+        <div className="category-actions">
+          <SubmitButton pending={pendingAction === `categoria-edit-${categoria.id}`}>Salvar</SubmitButton>
+          <button
+            className="button button--danger"
+            disabled={pendingAction === `categoria-delete-${categoria.id}`}
+            onClick={() => onDeleteCategoria(categoria.id)}
+            type="button"
+          >
+            {pendingAction === `categoria-delete-${categoria.id}` ? 'Excluindo...' : 'Excluir'}
+          </button>
+        </div>
+      </form>
+    </article>
+  )
+}
+
 type CategoriaDetailProps = {
   categoria: Categoria
-  categoriaEditNome: string
-  categoriaEditDescricao: string
   topicoNames: FieldMap
   subtopicoNames: FieldMap
   pendingAction: string
-  onUpdateCategoria: (event: FormEvent<HTMLFormElement>, categoriaId: number) => void
-  onDeleteCategoria: (categoriaId: number) => void
-  onCategoriaEditNomeChange: (value: string) => void
-  onCategoriaEditDescricaoChange: (value: string) => void
   onCreateTopico: (event: FormEvent<HTMLFormElement>, categoriaId: number) => void
   onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
   onTopicoNameChange: (categoriaId: number, value: string) => void
@@ -334,19 +412,13 @@ type CategoriaDetailProps = {
 
 function CategoriaDetail({
   categoria,
-  categoriaEditDescricao,
-  categoriaEditNome,
-  onCategoriaEditDescricaoChange,
-  onCategoriaEditNomeChange,
   onCreateSubtopico,
   onCreateTopico,
-  onDeleteCategoria,
   onReorderSubtopicos,
   onReorderTopicos,
   onSubtopicoNameChange,
   onToggleSubtopico,
   onTopicoNameChange,
-  onUpdateCategoria,
   pendingAction,
   subtopicoNames,
   topicoNames,
@@ -364,36 +436,14 @@ function CategoriaDetail({
             <h2>{categoria.nome}</h2>
             <p>{categoria.descricao}</p>
           </div>
-          <strong>{categoria.progresso}% concluído</strong>
+          <strong>{categoria.progresso}% concluido</strong>
         </div>
         <ProgressBar label={`Progresso da categoria ${categoria.nome}`} value={categoria.progresso} />
       </div>
 
-      <form className="category-edit-form" onSubmit={(event) => onUpdateCategoria(event, categoria.id)}>
-        <label>
-          Editar nome
-          <input onChange={(event) => onCategoriaEditNomeChange(event.target.value)} required value={categoriaEditNome} />
-        </label>
-        <label>
-          Editar descrição
-          <input onChange={(event) => onCategoriaEditDescricaoChange(event.target.value)} required value={categoriaEditDescricao} />
-        </label>
-        <div className="category-actions">
-          <SubmitButton pending={pendingAction === `categoria-edit-${categoria.id}`}>Salvar categoria</SubmitButton>
-          <button
-            className="button button--danger"
-            disabled={pendingAction === `categoria-delete-${categoria.id}`}
-            onClick={() => onDeleteCategoria(categoria.id)}
-            type="button"
-          >
-            {pendingAction === `categoria-delete-${categoria.id}` ? 'Excluindo...' : 'Excluir'}
-          </button>
-        </div>
-      </form>
-
       <form className="inline-form inline-form--row add-row" onSubmit={(event) => onCreateTopico(event, categoria.id)}>
         <label>
-          Novo tópico
+          Novo topico
           <input
             onChange={(event) => onTopicoNameChange(categoria.id, event.target.value)}
             placeholder="Ex.: Serializers"
@@ -404,7 +454,7 @@ function CategoriaDetail({
       </form>
 
       {categoria.topicos.length === 0 ? (
-        <EmptyState description="Adicione tópicos para organizar os subtópicos desta categoria." title="Categoria vazia" />
+        <EmptyState description="Adicione topicos para organizar os subtopicos desta categoria." title="Categoria vazia" />
       ) : (
         <div className="topic-list" ref={topicosRef}>
           {categoria.topicos.map((topico) => (
@@ -451,22 +501,22 @@ function TopicoCard({
   return (
     <article className="topic-card" data-item-id={topico.id}>
       <header className="topic-card__header">
-        <button aria-label={`Reordenar tópico ${topico.nome}`} className="drag-handle" type="button">
+        <button aria-label={`Reordenar topico ${topico.nome}`} className="drag-handle" type="button">
           ::
         </button>
         <div>
           <h2>{topico.nome}</h2>
           <span>
-            {topico.subtopicosConcluidos}/{topico.totalSubtopicos} subtópicos concluídos
+            {topico.subtopicosConcluidos}/{topico.totalSubtopicos} subtopicos concluidos
           </span>
         </div>
         <strong>{topico.progresso}%</strong>
       </header>
 
-      <ProgressBar label={`Progresso do tópico ${topico.nome}`} value={topico.progresso} />
+      <ProgressBar label={`Progresso do topico ${topico.nome}`} value={topico.progresso} />
 
       {topico.subtopicos.length === 0 ? (
-        <EmptyState description="Cadastre o primeiro subtópico para começar a acompanhar este tópico." title="Sem subtópicos" />
+        <EmptyState description="Cadastre o primeiro subtopico para comecar a acompanhar este topico." title="Sem subtopicos" />
       ) : (
         <div className="subtopic-list" ref={subtopicosRef}>
           {topico.subtopicos.map((subtopico) => (
@@ -475,7 +525,7 @@ function TopicoCard({
               data-item-id={subtopico.id}
               key={subtopico.id}
             >
-              <button aria-label={`Reordenar subtópico ${subtopico.nome}`} className="drag-handle" type="button">
+              <button aria-label={`Reordenar subtopico ${subtopico.nome}`} className="drag-handle" type="button">
                 ::
               </button>
               <input
@@ -492,7 +542,7 @@ function TopicoCard({
 
       <form className="inline-form inline-form--row add-row" onSubmit={(event) => onCreateSubtopico(event, topico.id)}>
         <label>
-          Novo subtópico
+          Novo subtopico
           <input
             onChange={(event) => onSubtopicoNameChange(topico.id, event.target.value)}
             placeholder="Ex.: Validar payload"
