@@ -745,6 +745,11 @@ input:focus {
   gap: 6px;
 }
 
+.topic-card__header > .item-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 .item-actions--compact {
   justify-content: end;
 }
