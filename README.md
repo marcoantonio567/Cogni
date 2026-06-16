@@ -17,14 +17,6 @@
 
 <h2 id="portugues">Portugues</h2>
 
-<p align="center">
-  <a href="#portugues">
-    <img alt="Aba Portugues ativa" src="https://img.shields.io/badge/Portugues-ativo-2563eb?style=flat-square&labelColor=111827">
-  </a>
-  <a href="#english">
-    <img alt="Ir para English" src="https://img.shields.io/badge/English-ir_para_versao-6b7280?style=flat-square&labelColor=111827">
-  </a>
-</p>
 
 Aplicacao web para organizar categorias, topicos e subtopicos de estudo, com
 controle de progresso, ordenacao visual e dashboard de estatisticas por usuario.
@@ -357,14 +349,6 @@ Resultado validado:
 
 <h2 id="english">English</h2>
 
-<p align="center">
-  <a href="#portugues">
-    <img alt="Go to Portuguese" src="https://img.shields.io/badge/Portugues-go_to_version-6b7280?style=flat-square&labelColor=111827">
-  </a>
-  <a href="#english">
-    <img alt="English active tab" src="https://img.shields.io/badge/English-active-16a34a?style=flat-square&labelColor=111827">
-  </a>
-</p>
 
 Web application for organizing study categories, topics, and subtopics, with
 progress tracking, visual ordering, and a per-user statistics dashboard.
