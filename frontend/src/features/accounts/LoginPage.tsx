@@ -13,9 +13,8 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
 
-  const redirectTo = location.state && typeof location.state === 'object' && 'from' in location.state
-    ? String(location.state.from)
-    : '/'
+  const redirectTo =
+    location.state && typeof location.state === 'object' && 'from' in location.state ? String(location.state.from) : '/'
 
   if (isAuthenticated) {
     return <Navigate replace to="/" />
@@ -41,7 +40,7 @@ export function LoginPage() {
       <section className="auth-panel" aria-labelledby="login-title">
         <p className="eyebrow">Gerenciador de Estudos</p>
         <h1 id="login-title">Entrar</h1>
-        <span>Use a sessão exposta pela API do backend para acessar seus estudos.</span>
+        <span>Acesse seu plano, marque progresso e acompanhe seus estudos em uma interface simples.</span>
 
         {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
 

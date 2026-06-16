@@ -34,8 +34,8 @@ export function DashboardPage() {
         {
           label: 'Subtópicos concluídos',
           data: summary?.weekly.map((point) => point.concluidos) ?? [],
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37, 99, 235, 0.16)',
+          borderColor: '#1d4ed8',
+          backgroundColor: 'rgba(29, 78, 216, 0.14)',
           fill: true,
           tension: 0.35,
           pointRadius: 4,
@@ -48,7 +48,7 @@ export function DashboardPage() {
   return (
     <main className="workspace">
       <PageHeader
-        description="Métricas e série semanal vêm do endpoint de dashboard do backend ou do mock temporário."
+        description="Acompanhe o volume de estudo, evolução semanal e conclusão geral em um só lugar."
         eyebrow="Dashboard"
         title="Visão geral"
       />
@@ -80,7 +80,7 @@ export function DashboardPage() {
           <section className="chart-panel" aria-label="Gráfico semanal de estudos">
             <header>
               <h2>Conclusões na semana</h2>
-              <span>Renderizado com Chart.js</span>
+              <span>Subtópicos finalizados por dia</span>
             </header>
             <div className="chart-frame">
               <Line

@@ -35,7 +35,7 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { name: /plano de estudos/i })).toBeInTheDocument()
     expect(screen.getByText(/modo mock temporário ativo/i)).toBeInTheDocument()
-    expect(screen.getByText(/Fundamentos de Django API/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Fundamentos de Django API/i).length).toBeGreaterThan(0)
   })
 
   it('keeps the backend URL configurable by environment', () => {
