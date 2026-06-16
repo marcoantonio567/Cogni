@@ -11,6 +11,8 @@ import type {
   Subtopico,
   Topico,
   UpdateCategoriaInput,
+  UpdateSubtopicoInput,
+  UpdateTopicoInput,
   UserSession,
 } from './types'
 
@@ -257,6 +259,35 @@ export const mockApi = {
     return cloneOverview()
   },
 
+  async updateTopico(input: UpdateTopicoInput) {
+    await wait()
+
+    categorias = categorias.map((categoria) => ({
+      ...categoria,
+      topicos: categoria.topicos.map((topico) =>
+        topico.id === input.id
+          ? {
+              ...topico,
+              nome: input.nome,
+            }
+          : topico,
+      ),
+    }))
+
+    return cloneOverview()
+  },
+
+  async deleteTopico(topicoId: number) {
+    await wait()
+
+    categorias = categorias.map((categoria) => ({
+      ...categoria,
+      topicos: categoria.topicos.filter((topico) => topico.id !== topicoId),
+    }))
+
+    return cloneOverview()
+  },
+
   async createSubtopico(input: CreateSubtopicoInput) {
     await wait()
 
@@ -281,6 +312,42 @@ export const mockApi = {
           ],
         }
       }),
+    }))
+
+    return cloneOverview()
+  },
+
+  async updateSubtopico(input: UpdateSubtopicoInput) {
+    await wait()
+
+    categorias = categorias.map((categoria) => ({
+      ...categoria,
+      topicos: categoria.topicos.map((topico) => ({
+        ...topico,
+        subtopicos: topico.subtopicos.map((subtopico) =>
+          subtopico.id === input.id
+            ? {
+                ...subtopico,
+                nome: input.nome,
+                observacoes: input.observacoes ?? subtopico.observacoes,
+              }
+            : subtopico,
+        ),
+      })),
+    }))
+
+    return cloneOverview()
+  },
+
+  async deleteSubtopico(subtopicoId: number) {
+    await wait()
+
+    categorias = categorias.map((categoria) => ({
+      ...categoria,
+      topicos: categoria.topicos.map((topico) => ({
+        ...topico,
+        subtopicos: topico.subtopicos.filter((subtopico) => subtopico.id !== subtopicoId),
+      })),
     }))
 
     return cloneOverview()

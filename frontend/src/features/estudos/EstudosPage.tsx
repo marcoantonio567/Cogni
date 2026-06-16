@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { api, type Categoria, type EstudosOverview, type Topico } from '../../shared/api'
+import { api, type Categoria, type EstudosOverview, type Subtopico, type Topico } from '../../shared/api'
 import { EmptyState } from '../../shared/components/EmptyState'
 import { PageHeader } from '../../shared/components/PageHeader'
 import { ProgressBar } from '../../shared/components/ProgressBar'
@@ -21,6 +21,10 @@ export function EstudosPage() {
   const [categoriaEditDescricao, setCategoriaEditDescricao] = useState('')
   const [topicoNames, setTopicoNames] = useState<FieldMap>({})
   const [subtopicoNames, setSubtopicoNames] = useState<FieldMap>({})
+  const [topicoEditId, setTopicoEditId] = useState<number | null>(null)
+  const [subtopicoEditId, setSubtopicoEditId] = useState<number | null>(null)
+  const [topicoEditNames, setTopicoEditNames] = useState<FieldMap>({})
+  const [subtopicoEditNames, setSubtopicoEditNames] = useState<FieldMap>({})
   const [showCreateTopicoForm, setShowCreateTopicoForm] = useState(false)
   const [showCreateSubtopicoForms, setShowCreateSubtopicoForms] = useState<ToggleMap>({})
   const [pendingAction, setPendingAction] = useState('')
@@ -161,6 +165,34 @@ export function EstudosPage() {
     })
   }
 
+  const editTopico = (topico: Topico) => {
+    setTopicoEditId(topico.id)
+    setTopicoEditNames((current) => ({ ...current, [topico.id]: topico.nome }))
+  }
+
+  const updateTopico = (event: FormEvent<HTMLFormElement>, topicoId: number) => {
+    event.preventDefault()
+    const nome = topicoEditNames[topicoId]?.trim()
+
+    if (!nome) {
+      return
+    }
+
+    void runAction(`topico-edit-${topicoId}`, async () => {
+      const result = await api.updateTopico({ id: topicoId, nome })
+      setTopicoEditId(null)
+      return result
+    })
+  }
+
+  const deleteTopico = (topico: Topico) => {
+    if (!window.confirm(`Excluir o topico "${topico.nome}" e todos os seus subtopicos?`)) {
+      return
+    }
+
+    void runAction(`topico-delete-${topico.id}`, async () => api.deleteTopico(topico.id))
+  }
+
   const createSubtopico = (event: FormEvent<HTMLFormElement>, topicoId: number) => {
     event.preventDefault()
     const nome = subtopicoNames[topicoId]?.trim()
@@ -175,6 +207,34 @@ export function EstudosPage() {
       setShowCreateSubtopicoForms((current) => ({ ...current, [topicoId]: false }))
       return result
     })
+  }
+
+  const editSubtopico = (subtopico: Subtopico) => {
+    setSubtopicoEditId(subtopico.id)
+    setSubtopicoEditNames((current) => ({ ...current, [subtopico.id]: subtopico.nome }))
+  }
+
+  const updateSubtopico = (event: FormEvent<HTMLFormElement>, subtopicoId: number) => {
+    event.preventDefault()
+    const nome = subtopicoEditNames[subtopicoId]?.trim()
+
+    if (!nome) {
+      return
+    }
+
+    void runAction(`subtopico-edit-${subtopicoId}`, async () => {
+      const result = await api.updateSubtopico({ id: subtopicoId, nome })
+      setSubtopicoEditId(null)
+      return result
+    })
+  }
+
+  const deleteSubtopico = (subtopico: Subtopico) => {
+    if (!window.confirm(`Excluir o subtopico "${subtopico.nome}"?`)) {
+      return
+    }
+
+    void runAction(`subtopico-delete-${subtopico.id}`, async () => api.deleteSubtopico(subtopico.id))
   }
 
   const toggleSubtopico = (subtopicoId: number, concluido: boolean) => {
@@ -303,18 +363,30 @@ export function EstudosPage() {
           categoria={selectedCategoria}
           onCreateSubtopico={createSubtopico}
           onCreateTopico={createTopico}
+          onDeleteSubtopico={deleteSubtopico}
+          onDeleteTopico={deleteTopico}
+          onEditSubtopico={editSubtopico}
+          onEditTopico={editTopico}
           onReorderSubtopicos={reorderSubtopicos}
           onReorderTopicos={reorderTopicos}
           onShowCreateSubtopicoFormChange={(topicoId, value) =>
             setShowCreateSubtopicoForms((current) => ({ ...current, [topicoId]: value }))
           }
           onShowCreateTopicoFormChange={setShowCreateTopicoForm}
+          onSubtopicoEditNameChange={(subtopicoId, value) => setSubtopicoEditNames((current) => ({ ...current, [subtopicoId]: value }))}
           onSubtopicoNameChange={(topicoId, value) => setSubtopicoNames((current) => ({ ...current, [topicoId]: value }))}
           onToggleSubtopico={toggleSubtopico}
+          onTopicoEditNameChange={(topicoId, value) => setTopicoEditNames((current) => ({ ...current, [topicoId]: value }))}
           onTopicoNameChange={(categoriaId, value) => setTopicoNames((current) => ({ ...current, [categoriaId]: value }))}
+          onUpdateSubtopico={updateSubtopico}
+          onUpdateTopico={updateTopico}
           pendingAction={pendingAction}
+          subtopicoEditId={subtopicoEditId}
+          subtopicoEditNames={subtopicoEditNames}
           showCreateSubtopicoForms={showCreateSubtopicoForms}
           showCreateTopicoForm={showCreateTopicoForm}
+          topicoEditId={topicoEditId}
+          topicoEditNames={topicoEditNames}
           subtopicoNames={subtopicoNames}
           topicoNames={topicoNames}
         />
@@ -426,15 +498,27 @@ type CategoriaDetailProps = {
   categoria: Categoria
   topicoNames: FieldMap
   subtopicoNames: FieldMap
+  topicoEditId: number | null
+  subtopicoEditId: number | null
+  topicoEditNames: FieldMap
+  subtopicoEditNames: FieldMap
   showCreateTopicoForm: boolean
   showCreateSubtopicoForms: ToggleMap
   pendingAction: string
   onCreateTopico: (event: FormEvent<HTMLFormElement>, categoriaId: number) => void
   onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
+  onUpdateTopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
+  onUpdateSubtopico: (event: FormEvent<HTMLFormElement>, subtopicoId: number) => void
+  onEditTopico: (topico: Topico) => void
+  onEditSubtopico: (subtopico: Subtopico) => void
+  onDeleteTopico: (topico: Topico) => void
+  onDeleteSubtopico: (subtopico: Subtopico) => void
   onShowCreateTopicoFormChange: (value: boolean) => void
   onShowCreateSubtopicoFormChange: (topicoId: number, value: boolean) => void
   onTopicoNameChange: (categoriaId: number, value: string) => void
   onSubtopicoNameChange: (topicoId: number, value: string) => void
+  onTopicoEditNameChange: (topicoId: number, value: string) => void
+  onSubtopicoEditNameChange: (subtopicoId: number, value: string) => void
   onToggleSubtopico: (subtopicoId: number, concluido: boolean) => void
   onReorderTopicos: (categoriaId: number, ids: number[]) => void
   onReorderSubtopicos: (topicoId: number, ids: number[]) => void
@@ -444,16 +528,28 @@ function CategoriaDetail({
   categoria,
   onCreateSubtopico,
   onCreateTopico,
+  onDeleteSubtopico,
+  onDeleteTopico,
+  onEditSubtopico,
+  onEditTopico,
   onReorderSubtopicos,
   onReorderTopicos,
   onShowCreateSubtopicoFormChange,
   onShowCreateTopicoFormChange,
+  onSubtopicoEditNameChange,
   onSubtopicoNameChange,
   onToggleSubtopico,
+  onTopicoEditNameChange,
   onTopicoNameChange,
+  onUpdateSubtopico,
+  onUpdateTopico,
   pendingAction,
+  subtopicoEditId,
+  subtopicoEditNames,
   showCreateSubtopicoForms,
   showCreateTopicoForm,
+  topicoEditId,
+  topicoEditNames,
   subtopicoNames,
   topicoNames,
 }: CategoriaDetailProps) {
@@ -504,13 +600,25 @@ function CategoriaDetail({
             <TopicoCard
               key={topico.id}
               onCreateSubtopico={onCreateSubtopico}
+              onDeleteSubtopico={onDeleteSubtopico}
+              onDeleteTopico={onDeleteTopico}
+              onEditSubtopico={onEditSubtopico}
+              onEditTopico={onEditTopico}
               onReorderSubtopicos={onReorderSubtopicos}
               onShowCreateSubtopicoFormChange={onShowCreateSubtopicoFormChange}
+              onSubtopicoEditNameChange={onSubtopicoEditNameChange}
               onSubtopicoNameChange={onSubtopicoNameChange}
               onToggleSubtopico={onToggleSubtopico}
+              onTopicoEditNameChange={onTopicoEditNameChange}
+              onUpdateSubtopico={onUpdateSubtopico}
+              onUpdateTopico={onUpdateTopico}
               pendingAction={pendingAction}
+              subtopicoEditId={subtopicoEditId}
+              subtopicoEditNames={subtopicoEditNames}
               showCreateSubtopicoForm={showCreateSubtopicoForms[topico.id] ?? false}
               subtopicoName={subtopicoNames[topico.id] ?? ''}
+              topicoEditName={topicoEditNames[topico.id] ?? topico.nome}
+              topicoIsEditing={topicoEditId === topico.id}
               topico={topico}
             />
           ))}
@@ -523,24 +631,48 @@ function CategoriaDetail({
 type TopicoCardProps = {
   topico: Topico
   subtopicoName: string
+  topicoEditName: string
+  topicoIsEditing: boolean
+  subtopicoEditId: number | null
+  subtopicoEditNames: FieldMap
   showCreateSubtopicoForm: boolean
   pendingAction: string
   onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
+  onUpdateTopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
+  onUpdateSubtopico: (event: FormEvent<HTMLFormElement>, subtopicoId: number) => void
+  onEditTopico: (topico: Topico) => void
+  onEditSubtopico: (subtopico: Subtopico) => void
+  onDeleteTopico: (topico: Topico) => void
+  onDeleteSubtopico: (subtopico: Subtopico) => void
   onShowCreateSubtopicoFormChange: (topicoId: number, value: boolean) => void
   onSubtopicoNameChange: (topicoId: number, value: string) => void
+  onTopicoEditNameChange: (topicoId: number, value: string) => void
+  onSubtopicoEditNameChange: (subtopicoId: number, value: string) => void
   onToggleSubtopico: (subtopicoId: number, concluido: boolean) => void
   onReorderSubtopicos: (topicoId: number, ids: number[]) => void
 }
 
 function TopicoCard({
   onCreateSubtopico,
+  onDeleteSubtopico,
+  onDeleteTopico,
+  onEditSubtopico,
+  onEditTopico,
   onReorderSubtopicos,
   onShowCreateSubtopicoFormChange,
+  onSubtopicoEditNameChange,
   onSubtopicoNameChange,
   onToggleSubtopico,
+  onTopicoEditNameChange,
+  onUpdateSubtopico,
+  onUpdateTopico,
   pendingAction,
+  subtopicoEditId,
+  subtopicoEditNames,
   showCreateSubtopicoForm,
   subtopicoName,
+  topicoEditName,
+  topicoIsEditing,
   topico,
 }: TopicoCardProps) {
   const subtopicosRef = useSortableIds<HTMLDivElement>({
@@ -554,12 +686,39 @@ function TopicoCard({
           ::
         </button>
         <div>
-          <h2>{topico.nome}</h2>
+          {topicoIsEditing ? (
+            <form className="rename-form" onSubmit={(event) => onUpdateTopico(event, topico.id)}>
+              <input
+                aria-label={`Novo nome do topico ${topico.nome}`}
+                autoFocus
+                onChange={(event) => onTopicoEditNameChange(topico.id, event.target.value)}
+                value={topicoEditName}
+              />
+              <SubmitButton pending={pendingAction === `topico-edit-${topico.id}`}>Salvar</SubmitButton>
+            </form>
+          ) : (
+            <h2>{topico.nome}</h2>
+          )}
           <span>
             {topico.subtopicosConcluidos}/{topico.totalSubtopicos} subtopicos concluidos
           </span>
         </div>
-        <strong>{topico.progresso}%</strong>
+        <div className="item-actions">
+          <strong>{topico.progresso}%</strong>
+          <button aria-label={`Editar topico ${topico.nome}`} className="icon-button" onClick={() => onEditTopico(topico)} title="Editar topico" type="button">
+            &#9998;
+          </button>
+          <button
+            aria-label={`Excluir topico ${topico.nome}`}
+            className="icon-button icon-button--danger"
+            disabled={pendingAction === `topico-delete-${topico.id}`}
+            onClick={() => onDeleteTopico(topico)}
+            title="Excluir topico"
+            type="button"
+          >
+            &times;
+          </button>
+        </div>
       </header>
 
       <ProgressBar label={`Progresso do topico ${topico.nome}`} value={topico.progresso} />
@@ -569,7 +728,7 @@ function TopicoCard({
       ) : (
         <div className="subtopic-list" ref={subtopicosRef}>
           {topico.subtopicos.map((subtopico) => (
-            <label
+            <div
               className={subtopico.concluido ? 'subtopic-row subtopic-row--done' : 'subtopic-row'}
               data-item-id={subtopico.id}
               key={subtopico.id}
@@ -578,13 +737,47 @@ function TopicoCard({
                 ::
               </button>
               <input
+                aria-label={`Marcar subtopico ${subtopico.nome}`}
                 checked={subtopico.concluido}
                 disabled={pendingAction === `toggle-${subtopico.id}`}
                 onChange={(event) => onToggleSubtopico(subtopico.id, event.target.checked)}
                 type="checkbox"
               />
-              <span>{subtopico.nome}</span>
-            </label>
+              {subtopicoEditId === subtopico.id ? (
+                <form className="rename-form" onSubmit={(event) => onUpdateSubtopico(event, subtopico.id)}>
+                  <input
+                    aria-label={`Novo nome do subtopico ${subtopico.nome}`}
+                    autoFocus
+                    onChange={(event) => onSubtopicoEditNameChange(subtopico.id, event.target.value)}
+                    value={subtopicoEditNames[subtopico.id] ?? subtopico.nome}
+                  />
+                  <SubmitButton pending={pendingAction === `subtopico-edit-${subtopico.id}`}>Salvar</SubmitButton>
+                </form>
+              ) : (
+                <span>{subtopico.nome}</span>
+              )}
+              <div className="item-actions item-actions--compact">
+                <button
+                  aria-label={`Editar subtopico ${subtopico.nome}`}
+                  className="icon-button"
+                  onClick={() => onEditSubtopico(subtopico)}
+                  title="Editar subtopico"
+                  type="button"
+                >
+                  &#9998;
+                </button>
+                <button
+                  aria-label={`Excluir subtopico ${subtopico.nome}`}
+                  className="icon-button icon-button--danger"
+                  disabled={pendingAction === `subtopico-delete-${subtopico.id}`}
+                  onClick={() => onDeleteSubtopico(subtopico)}
+                  title="Excluir subtopico"
+                  type="button"
+                >
+                  &times;
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}

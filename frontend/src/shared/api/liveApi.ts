@@ -10,6 +10,8 @@ import type {
   ReorderInput,
   Subtopico,
   UpdateCategoriaInput,
+  UpdateSubtopicoInput,
+  UpdateTopicoInput,
   UserSession,
 } from './types'
 
@@ -59,12 +61,37 @@ export const liveApi = {
     return data
   },
 
+  async updateTopico(input: UpdateTopicoInput) {
+    await httpClient.patch(`/estudos/topicos/${input.id}/`, {
+      nome: input.nome,
+    })
+    return this.estudosOverview()
+  },
+
+  async deleteTopico(topicoId: number) {
+    await httpClient.delete(`/estudos/topicos/${topicoId}/`)
+    return this.estudosOverview()
+  },
+
   async createSubtopico(input: CreateSubtopicoInput) {
     const { data } = await httpClient.post<EstudosOverview>(
       `/estudos/topicos/${input.topicoId}/subtopicos/`,
       { nome: input.nome, observacoes: input.observacoes },
     )
     return data
+  },
+
+  async updateSubtopico(input: UpdateSubtopicoInput) {
+    await httpClient.patch(`/estudos/subtopicos/${input.id}/`, {
+      nome: input.nome,
+      observacoes: input.observacoes,
+    })
+    return this.estudosOverview()
+  },
+
+  async deleteSubtopico(subtopicoId: number) {
+    await httpClient.delete(`/estudos/subtopicos/${subtopicoId}/`)
+    return this.estudosOverview()
   },
 
   async toggleSubtopico(subtopicoId: number, concluido: boolean) {

@@ -83,8 +83,19 @@ export type CreateTopicoInput = {
   nome: string
 }
 
+export type UpdateTopicoInput = {
+  id: number
+  nome: string
+}
+
 export type CreateSubtopicoInput = {
   topicoId: number
+  nome: string
+  observacoes?: string
+}
+
+export type UpdateSubtopicoInput = {
+  id: number
   nome: string
   observacoes?: string
 }
