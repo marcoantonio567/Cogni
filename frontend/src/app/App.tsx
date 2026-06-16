@@ -39,12 +39,17 @@ function AppShell() {
 
         <nav aria-label="Navegação principal">
           <NavLink end to="/">
+            <span aria-hidden="true">□</span>
             Estudos
           </NavLink>
-          <NavLink to="/dashboard">Dashboard</NavLink>
+          <NavLink to="/dashboard">
+            <span aria-hidden="true">↗</span>
+            Dashboard
+          </NavLink>
         </nav>
 
         <div className="session-box">
+          <span>Sessão ativa</span>
           <small>{user?.email}</small>
           <button className="button button--ghost" onClick={() => void logout()} type="button">
             Sair

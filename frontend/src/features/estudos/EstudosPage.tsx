@@ -54,6 +54,15 @@ export function EstudosPage() {
     [overview, selectedCategoriaId],
   )
 
+  const totals = useMemo(() => {
+    const categorias = overview?.categorias ?? []
+    const totalTopicos = categorias.reduce((sum, categoria) => sum + categoria.topicos.length, 0)
+    const totalSubtopicos = categorias.reduce((sum, categoria) => sum + categoria.totalSubtopicos, 0)
+    const concluidos = categorias.reduce((sum, categoria) => sum + categoria.subtopicosConcluidos, 0)
+
+    return { totalCategorias: categorias.length, totalTopicos, totalSubtopicos, concluidos }
+  }, [overview])
+
   const replaceOverview = (nextOverview: EstudosOverview) => {
     setOverview(nextOverview)
     setSelectedCategoriaId((current) => current ?? nextOverview.categorias[0]?.id ?? null)
@@ -72,7 +81,7 @@ export function EstudosPage() {
         await loadOverview()
       }
     } catch {
-      setError('A API não confirmou a operação. Os dados visuais foram recarregados quando possível.')
+      setError('A API não confirmou a operação. Recarreguei os dados visuais quando possível.')
       await loadOverview().catch(() => undefined)
     } finally {
       setPendingAction('')
@@ -149,7 +158,7 @@ export function EstudosPage() {
   return (
     <main className="workspace">
       <PageHeader
-        description="Categorias, tópicos e subtópicos são manipulados via API; progresso e permissões permanecem no backend."
+        description="Escolha uma categoria, acompanhe o progresso e marque subtópicos sem perder o contexto."
         eyebrow="Estudos"
         title="Plano de estudos"
       />
@@ -162,20 +171,39 @@ export function EstudosPage() {
           <strong>{overview.progressoGeral}%</strong>
         </div>
         <ProgressBar label="Progresso geral dos estudos" value={overview.progressoGeral} />
+        <div className="quick-stats" aria-label="Resumo dos estudos">
+          <span>{totals.totalCategorias} categorias</span>
+          <span>{totals.totalTopicos} tópicos</span>
+          <span>
+            {totals.concluidos}/{totals.totalSubtopicos} concluídos
+          </span>
+        </div>
       </section>
 
       <section className="study-grid">
         <aside className="category-panel" aria-label="Categorias">
-          <form className="inline-form" onSubmit={createCategoria}>
+          <div className="panel-heading">
+            <div>
+              <span>Organização</span>
+              <h2>Categorias</h2>
+            </div>
+          </div>
+
+          <form className="stack-form compact-form" onSubmit={createCategoria}>
             <label>
-              Nova categoria
-              <input onChange={(event) => setCategoriaNome(event.target.value)} required value={categoriaNome} />
+              Nome da categoria
+              <input onChange={(event) => setCategoriaNome(event.target.value)} placeholder="Ex.: Django REST" required value={categoriaNome} />
             </label>
             <label>
               Descrição
-              <input onChange={(event) => setCategoriaDescricao(event.target.value)} required value={categoriaDescricao} />
+              <input
+                onChange={(event) => setCategoriaDescricao(event.target.value)}
+                placeholder="Ex.: API, auth e permissões"
+                required
+                value={categoriaDescricao}
+              />
             </label>
-            <SubmitButton pending={pendingAction === 'categoria'}>Criar</SubmitButton>
+            <SubmitButton pending={pendingAction === 'categoria'}>Criar categoria</SubmitButton>
           </form>
 
           <div className="category-list">
@@ -186,8 +214,13 @@ export function EstudosPage() {
                 onClick={() => setSelectedCategoriaId(categoria.id)}
                 type="button"
               >
-                <span>{categoria.nome}</span>
-                <strong>{categoria.progresso}%</strong>
+                <span>
+                  <strong>{categoria.nome}</strong>
+                  <small>
+                    {categoria.subtopicosConcluidos}/{categoria.totalSubtopicos} subtópicos
+                  </small>
+                </span>
+                <b>{categoria.progresso}%</b>
               </button>
             ))}
           </div>
@@ -252,13 +285,17 @@ function CategoriaDetail({
     <>
       <div className="category-summary">
         <div>
-          <p>{categoria.descricao}</p>
+          <div>
+            <span>Categoria selecionada</span>
+            <h2>{categoria.nome}</h2>
+            <p>{categoria.descricao}</p>
+          </div>
           <strong>{categoria.progresso}% concluído</strong>
         </div>
         <ProgressBar label={`Progresso da categoria ${categoria.nome}`} value={categoria.progresso} />
       </div>
 
-      <form className="inline-form inline-form--row" onSubmit={(event) => onCreateTopico(event, categoria.id)}>
+      <form className="inline-form inline-form--row add-row" onSubmit={(event) => onCreateTopico(event, categoria.id)}>
         <label>
           Novo tópico
           <input
@@ -267,7 +304,7 @@ function CategoriaDetail({
             value={topicoNames[categoria.id] ?? ''}
           />
         </label>
-        <SubmitButton pending={pendingAction === `topico-${categoria.id}`}>Adicionar tópico</SubmitButton>
+        <SubmitButton pending={pendingAction === `topico-${categoria.id}`}>Adicionar</SubmitButton>
       </form>
 
       {categoria.topicos.length === 0 ? (
@@ -332,24 +369,32 @@ function TopicoCard({
 
       <ProgressBar label={`Progresso do tópico ${topico.nome}`} value={topico.progresso} />
 
-      <div className="subtopic-list" ref={subtopicosRef}>
-        {topico.subtopicos.map((subtopico) => (
-          <label className="subtopic-row" data-item-id={subtopico.id} key={subtopico.id}>
-            <button aria-label={`Reordenar subtópico ${subtopico.nome}`} className="drag-handle" type="button">
-              ::
-            </button>
-            <input
-              checked={subtopico.concluido}
-              disabled={pendingAction === `toggle-${subtopico.id}`}
-              onChange={(event) => onToggleSubtopico(subtopico.id, event.target.checked)}
-              type="checkbox"
-            />
-            <span>{subtopico.nome}</span>
-          </label>
-        ))}
-      </div>
+      {topico.subtopicos.length === 0 ? (
+        <EmptyState description="Cadastre o primeiro subtópico para começar a acompanhar este tópico." title="Sem subtópicos" />
+      ) : (
+        <div className="subtopic-list" ref={subtopicosRef}>
+          {topico.subtopicos.map((subtopico) => (
+            <label
+              className={subtopico.concluido ? 'subtopic-row subtopic-row--done' : 'subtopic-row'}
+              data-item-id={subtopico.id}
+              key={subtopico.id}
+            >
+              <button aria-label={`Reordenar subtópico ${subtopico.nome}`} className="drag-handle" type="button">
+                ::
+              </button>
+              <input
+                checked={subtopico.concluido}
+                disabled={pendingAction === `toggle-${subtopico.id}`}
+                onChange={(event) => onToggleSubtopico(subtopico.id, event.target.checked)}
+                type="checkbox"
+              />
+              <span>{subtopico.nome}</span>
+            </label>
+          ))}
+        </div>
+      )}
 
-      <form className="inline-form inline-form--row" onSubmit={(event) => onCreateSubtopico(event, topico.id)}>
+      <form className="inline-form inline-form--row add-row" onSubmit={(event) => onCreateSubtopico(event, topico.id)}>
         <label>
           Novo subtópico
           <input
@@ -358,7 +403,7 @@ function TopicoCard({
             value={subtopicoName}
           />
         </label>
-        <SubmitButton pending={pendingAction === `subtopico-${topico.id}`}>Adicionar subtópico</SubmitButton>
+        <SubmitButton pending={pendingAction === `subtopico-${topico.id}`}>Adicionar</SubmitButton>
       </form>
     </article>
   )
