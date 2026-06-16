@@ -8,4 +8,6 @@ export const httpClient = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true,
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken',
 })
