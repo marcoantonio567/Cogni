@@ -101,6 +101,23 @@ Criterios de aceite:
 - Erros de autenticacao, autorizacao e validacao sao previsiveis.
 - O backend permanece como fonte da verdade das regras de negocio.
 
+Contrato inicial implementado no backend:
+
+- Prefixo: `/api/v1/`.
+- Accounts: `POST /accounts/register/`, `POST /accounts/login/`,
+  `POST /accounts/logout/`, `GET /accounts/me/`.
+- Estudos: CRUD em `/estudos/categorias/`, `/estudos/topicos/` e
+  `/estudos/subtopicos/`.
+- Progresso: `GET /estudos/progresso/` retorna totais e percentual geral do
+  usuario autenticado.
+- Conclusao: `POST /estudos/subtopicos/{id}/toggle-conclusao/` altera
+  `concluido` e retorna o subtopico com progresso geral recalculado.
+- Ordenacao: `POST /estudos/categorias/{id}/ordenar-topicos/` e
+  `POST /estudos/topicos/{id}/ordenar-subtopicos/` recebem `{"ids": [...]}` e
+  persistem a ordem apenas quando todos os IDs pertencem ao usuario autenticado.
+- Dashboard: `GET /dashboard/resumo/` e `GET /dashboard/semanal/` retornam
+  metricas e serie semanal ja filtradas por usuario.
+
 ## 4. Backend - Base Django API
 
 Objetivo: preparar o backend Django para servir API JSON.
