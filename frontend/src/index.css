@@ -111,6 +111,18 @@ code {
   padding: 12px;
 }
 
+.creation-block {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.creation-block--nested {
+  border-top: 1px solid #edf2f7;
+  padding-top: 12px;
+}
+
 label {
   color: #344054;
   display: grid;

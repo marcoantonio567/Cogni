@@ -8,6 +8,7 @@ import { SubmitButton } from '../../shared/components/SubmitButton'
 import { useSortableIds } from './useSortableIds'
 
 type FieldMap = Record<number, string>
+type ToggleMap = Record<number, boolean>
 
 export function EstudosPage() {
   const [overview, setOverview] = useState<EstudosOverview | null>(null)
@@ -20,6 +21,8 @@ export function EstudosPage() {
   const [categoriaEditDescricao, setCategoriaEditDescricao] = useState('')
   const [topicoNames, setTopicoNames] = useState<FieldMap>({})
   const [subtopicoNames, setSubtopicoNames] = useState<FieldMap>({})
+  const [showCreateTopicoForm, setShowCreateTopicoForm] = useState(false)
+  const [showCreateSubtopicoForms, setShowCreateSubtopicoForms] = useState<ToggleMap>({})
   const [pendingAction, setPendingAction] = useState('')
   const [error, setError] = useState('')
 
@@ -153,6 +156,7 @@ export function EstudosPage() {
     void runAction(`topico-${categoriaId}`, async () => {
       const result = await api.createTopico({ categoriaId, nome })
       setTopicoNames((current) => ({ ...current, [categoriaId]: '' }))
+      setShowCreateTopicoForm(false)
       return result
     })
   }
@@ -168,6 +172,7 @@ export function EstudosPage() {
     void runAction(`subtopico-${topicoId}`, async () => {
       const result = await api.createSubtopico({ topicoId, nome })
       setSubtopicoNames((current) => ({ ...current, [topicoId]: '' }))
+      setShowCreateSubtopicoForms((current) => ({ ...current, [topicoId]: false }))
       return result
     })
   }
@@ -300,10 +305,16 @@ export function EstudosPage() {
           onCreateTopico={createTopico}
           onReorderSubtopicos={reorderSubtopicos}
           onReorderTopicos={reorderTopicos}
+          onShowCreateSubtopicoFormChange={(topicoId, value) =>
+            setShowCreateSubtopicoForms((current) => ({ ...current, [topicoId]: value }))
+          }
+          onShowCreateTopicoFormChange={setShowCreateTopicoForm}
           onSubtopicoNameChange={(topicoId, value) => setSubtopicoNames((current) => ({ ...current, [topicoId]: value }))}
           onToggleSubtopico={toggleSubtopico}
           onTopicoNameChange={(categoriaId, value) => setTopicoNames((current) => ({ ...current, [categoriaId]: value }))}
           pendingAction={pendingAction}
+          showCreateSubtopicoForms={showCreateSubtopicoForms}
+          showCreateTopicoForm={showCreateTopicoForm}
           subtopicoNames={subtopicoNames}
           topicoNames={topicoNames}
         />
@@ -415,9 +426,13 @@ type CategoriaDetailProps = {
   categoria: Categoria
   topicoNames: FieldMap
   subtopicoNames: FieldMap
+  showCreateTopicoForm: boolean
+  showCreateSubtopicoForms: ToggleMap
   pendingAction: string
   onCreateTopico: (event: FormEvent<HTMLFormElement>, categoriaId: number) => void
   onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
+  onShowCreateTopicoFormChange: (value: boolean) => void
+  onShowCreateSubtopicoFormChange: (topicoId: number, value: boolean) => void
   onTopicoNameChange: (categoriaId: number, value: string) => void
   onSubtopicoNameChange: (topicoId: number, value: string) => void
   onToggleSubtopico: (subtopicoId: number, concluido: boolean) => void
@@ -431,10 +446,14 @@ function CategoriaDetail({
   onCreateTopico,
   onReorderSubtopicos,
   onReorderTopicos,
+  onShowCreateSubtopicoFormChange,
+  onShowCreateTopicoFormChange,
   onSubtopicoNameChange,
   onToggleSubtopico,
   onTopicoNameChange,
   pendingAction,
+  showCreateSubtopicoForms,
+  showCreateTopicoForm,
   subtopicoNames,
   topicoNames,
 }: CategoriaDetailProps) {
@@ -456,17 +475,26 @@ function CategoriaDetail({
         <ProgressBar label={`Progresso da categoria ${categoria.nome}`} value={categoria.progresso} />
       </div>
 
-      <form className="inline-form inline-form--row add-row" onSubmit={(event) => onCreateTopico(event, categoria.id)}>
-        <label>
-          Novo topico
-          <input
-            onChange={(event) => onTopicoNameChange(categoria.id, event.target.value)}
-            placeholder="Ex.: Serializers"
-            value={topicoNames[categoria.id] ?? ''}
-          />
-        </label>
-        <SubmitButton pending={pendingAction === `topico-${categoria.id}`}>Adicionar</SubmitButton>
-      </form>
+      <div className="creation-block">
+        <button className="button button--primary" onClick={() => onShowCreateTopicoFormChange(!showCreateTopicoForm)} type="button">
+          {showCreateTopicoForm ? 'Cancelar novo topico' : 'Adicionar topico'}
+        </button>
+
+        {showCreateTopicoForm ? (
+          <form className="inline-form inline-form--row add-row" onSubmit={(event) => onCreateTopico(event, categoria.id)}>
+            <label>
+              Nome do topico
+              <input
+                autoFocus
+                onChange={(event) => onTopicoNameChange(categoria.id, event.target.value)}
+                placeholder="Ex.: Serializers"
+                value={topicoNames[categoria.id] ?? ''}
+              />
+            </label>
+            <SubmitButton pending={pendingAction === `topico-${categoria.id}`}>Criar topico</SubmitButton>
+          </form>
+        ) : null}
+      </div>
 
       {categoria.topicos.length === 0 ? (
         <EmptyState description="Adicione topicos para organizar os subtopicos desta categoria." title="Categoria vazia" />
@@ -477,9 +505,11 @@ function CategoriaDetail({
               key={topico.id}
               onCreateSubtopico={onCreateSubtopico}
               onReorderSubtopicos={onReorderSubtopicos}
+              onShowCreateSubtopicoFormChange={onShowCreateSubtopicoFormChange}
               onSubtopicoNameChange={onSubtopicoNameChange}
               onToggleSubtopico={onToggleSubtopico}
               pendingAction={pendingAction}
+              showCreateSubtopicoForm={showCreateSubtopicoForms[topico.id] ?? false}
               subtopicoName={subtopicoNames[topico.id] ?? ''}
               topico={topico}
             />
@@ -493,8 +523,10 @@ function CategoriaDetail({
 type TopicoCardProps = {
   topico: Topico
   subtopicoName: string
+  showCreateSubtopicoForm: boolean
   pendingAction: string
   onCreateSubtopico: (event: FormEvent<HTMLFormElement>, topicoId: number) => void
+  onShowCreateSubtopicoFormChange: (topicoId: number, value: boolean) => void
   onSubtopicoNameChange: (topicoId: number, value: string) => void
   onToggleSubtopico: (subtopicoId: number, concluido: boolean) => void
   onReorderSubtopicos: (topicoId: number, ids: number[]) => void
@@ -503,9 +535,11 @@ type TopicoCardProps = {
 function TopicoCard({
   onCreateSubtopico,
   onReorderSubtopicos,
+  onShowCreateSubtopicoFormChange,
   onSubtopicoNameChange,
   onToggleSubtopico,
   pendingAction,
+  showCreateSubtopicoForm,
   subtopicoName,
   topico,
 }: TopicoCardProps) {
@@ -555,17 +589,30 @@ function TopicoCard({
         </div>
       )}
 
-      <form className="inline-form inline-form--row add-row" onSubmit={(event) => onCreateSubtopico(event, topico.id)}>
-        <label>
-          Novo subtopico
-          <input
-            onChange={(event) => onSubtopicoNameChange(topico.id, event.target.value)}
-            placeholder="Ex.: Validar payload"
-            value={subtopicoName}
-          />
-        </label>
-        <SubmitButton pending={pendingAction === `subtopico-${topico.id}`}>Adicionar</SubmitButton>
-      </form>
+      <div className="creation-block creation-block--nested">
+        <button
+          className="button button--ghost"
+          onClick={() => onShowCreateSubtopicoFormChange(topico.id, !showCreateSubtopicoForm)}
+          type="button"
+        >
+          {showCreateSubtopicoForm ? 'Cancelar novo subtopico' : 'Adicionar subtopico'}
+        </button>
+
+        {showCreateSubtopicoForm ? (
+          <form className="inline-form inline-form--row add-row" onSubmit={(event) => onCreateSubtopico(event, topico.id)}>
+            <label>
+              Nome do subtopico
+              <input
+                autoFocus
+                onChange={(event) => onSubtopicoNameChange(topico.id, event.target.value)}
+                placeholder="Ex.: Validar payload"
+                value={subtopicoName}
+              />
+            </label>
+            <SubmitButton pending={pendingAction === `subtopico-${topico.id}`}>Criar subtopico</SubmitButton>
+          </form>
+        ) : null}
+      </div>
     </article>
   )
 }
